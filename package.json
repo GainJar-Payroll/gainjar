@@ -1,0 +1,60 @@
+{
+  "name": "se-2",
+  "version": "0.0.1",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ]
+  },
+  "scripts": {
+    "account": "bun foundry:account",
+    "account:generate": "bun foundry:generate",
+    "account:import": "bun foundry:account-import",
+    "account:reveal-pk": "bun --cwd packages/foundry account:reveal-pk",
+    "chain": "bun foundry:chain",
+    "compile": "bun foundry:compile",
+    "deploy": "bun foundry:deploy",
+    "flatten": "bun foundry:flatten",
+    "fork": "bun foundry:fork",
+    "format": "bun next:format && bun foundry:format",
+    "foundry:account": "bun --cwd packages/foundry account",
+    "foundry:account-import": "bun --cwd packages/foundry account:import",
+    "foundry:chain": "bun --cwd packages/foundry chain",
+    "foundry:clean": "bun --cwd packages/foundry clean",
+    "foundry:compile": "bun --cwd packages/foundry compile",
+    "foundry:deploy": "bun --cwd packages/foundry deploy",
+    "foundry:deploy-verify": "bun --cwd packages/foundry deploy:verify",
+    "foundry:flatten": "bun --cwd packages/foundry flatten",
+    "foundry:fork": "bun --cwd packages/foundry fork",
+    "foundry:format": "bun --cwd packages/foundry format",
+    "foundry:generate": "bun --cwd packages/foundry account:generate",
+    "foundry:lint": "bun --cwd packages/foundry lint",
+    "foundry:test": "bun --cwd packages/foundry test",
+    "foundry:verify": "bun --cwd packages/foundry verify",
+    "generate": "bun foundry:generate",
+    "postinstall": "husky install",
+    "ipfs": "bun --cwd packages/nextjs ipfs",
+    "lint": "bun next:lint && bun foundry:lint",
+    "next:build": "bun --cwd packages/nextjs build",
+    "next:check-types": "bun --cwd packages/nextjs check-types",
+    "next:format": "bun --cwd packages/nextjs format",
+    "next:lint": "bun --cwd packages/nextjs lint",
+    "next:serve": "bun --cwd packages/nextjs serve",
+    "precommit": "lint-staged",
+    "start": "bun --cwd packages/nextjs dev",
+    "test": "bun foundry:test",
+    "vercel": "bun --cwd packages/nextjs vercel",
+    "vercel:login": "bun --cwd packages/nextjs vercel:login",
+    "vercel:yolo": "bun --cwd packages/nextjs vercel:yolo",
+    "verify": "bun foundry:verify"
+  },
+  "devDependencies": {
+    "husky": "~9.1.6",
+    "lint-staged": "~13.2.2"
+  },
+  "packageManager": "bun@3.2.3",
+  "engines": {
+    "node": ">=20.18.3"
+  }
+}
