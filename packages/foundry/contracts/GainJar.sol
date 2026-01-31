@@ -4,8 +4,8 @@ pragma solidity >=0.8.0 <0.9.0;
 import "forge-std/console.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { Context } from "@openzeppelin/contracts/utils/Context.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * A Payroll contract with ability to stream payment from employer to their employee
@@ -16,7 +16,7 @@ import { Context } from "@openzeppelin/contracts/utils/Context.sol";
  *
  * @author raihanmd
  */
-contract GainJar is Context {
+contract GainJar is Context, ReentrancyGuard {
   // ==============
   // Events
   // ==============
@@ -41,11 +41,25 @@ contract GainJar is Context {
   // ==============
 
   error GainJar__DepositCantBeZero();
+
   error GainJar__InvalidAddress();
+
   error GainJar__SalaryCantBeZero();
-  error GainJar__StreamExists();
+
   error GainJar__PeriodCantBeZero();
+
+  error GainJar__StreamExists();
+  error GainJar__StreamNotActive();
+  error GainJar__StreamAlreadyPaused();
+
   error GainJar__AmountTooSmall();
+
+  error GainJar__OnlyInfiniteStream();
+  error GainJar__OnlyFiniteStream();
+
+  error GainJar__NothingToWithdraw();
+
+  error GainJar__InsufficientEmployerVault(address _employer);
 
   // ======================
   // State & Data types
@@ -101,14 +115,14 @@ contract GainJar is Context {
   mapping(address => mapping(address => uint256)) s_employeeIndex;
 
   // USDC as for payment token
-  IERC20 private immutable s_paymentToken;
+  IERC20 private immutable i_paymentToken;
 
   // ==============
   // Constructor
   // ==============
 
   constructor(address _paymentTokenAddress) {
-    s_paymentToken = IERC20(_paymentTokenAddress);
+    i_paymentToken = IERC20(_paymentTokenAddress);
   }
 
   // =====================
@@ -124,7 +138,7 @@ contract GainJar is Context {
       revert GainJar__DepositCantBeZero();
     }
 
-    s_paymentToken.transferFrom(_msgSender(), address(this), _amount);
+    i_paymentToken.transferFrom(_msgSender(), address(this), _amount);
 
     s_vaultBalances[_msgSender()] += _amount;
 
@@ -224,6 +238,223 @@ contract GainJar is Context {
     );
   }
 
+  // ========================================
+  // CONVENIENCE FUNCTIONS FOR COMMON PERIODS
+  // ========================================
+
+  /**
+   * @notice Create finite stream with days instead of seconds
+   */
+  function createFiniteStreamDays(address _employee, uint256 _totalAmount, uint256 _durationInDays) external {
+    uint256 durationSeconds = _durationInDays * 1 days;
+
+    // Call internal create function
+    this.createFiniteStream(_employee, _totalAmount, durationSeconds);
+  }
+
+  /**
+   * @notice Create infinite stream with hourly rate
+   */
+  function createHourlyStream(
+    address _employee,
+    uint256 _hourlyRate // e.g., 50 for $50/hour
+  )
+    external
+  {
+    this.createInfiniteStream(_employee, _hourlyRate, 1 hours);
+  }
+
+  /**
+   * @notice Create infinite stream with monthly rate
+   */
+  function createMonthlyStream(
+    address _employee,
+    uint256 _monthlyRate // e.g., 5000 for $5,000/month
+  )
+    external
+  {
+    this.createInfiniteStream(_employee, _monthlyRate, 30 days);
+  }
+
+  /**
+   * @notice Update rate for infinite stream
+   */
+  function updateInfiniteRate(address _employee, uint256 _newRateAmount, uint256 _newRatePeriod) external {
+    Stream storage stream = s_streams[_msgSender()][_employee];
+    if (!stream.isActive) revert GainJar__StreamNotActive();
+    if (stream.streamType != StreamType.INFINITE) revert GainJar__OnlyInfiniteStream();
+
+    // Withdraw pending first
+    _processWithdrawal(msg.sender, _employee);
+
+    // Update rate
+    stream.ratePerSecond = _newRateAmount / _newRatePeriod;
+  }
+
+  /**
+   * @notice Extend finite stream
+   */
+  function extendFiniteStream(address _employee, uint256 _additionalAmount, uint256 _additionalSeconds) external {
+    Stream storage stream = s_streams[_msgSender()][_employee];
+    if (!stream.isActive) revert GainJar__StreamNotActive();
+    if (stream.streamType != StreamType.FINITE) revert GainJar__OnlyFiniteStream();
+
+    // Withdraw accumulated first
+    _processWithdrawal(msg.sender, _employee);
+
+    // Calculate new total and recalculate rate
+    uint256 remainingTime = stream.endTime - block.timestamp;
+    uint256 newTotalTime = remainingTime + _additionalSeconds;
+    uint256 newTotalAmount = stream.totalAmount + _additionalAmount;
+
+    stream.totalAmount = newTotalAmount;
+    stream.endTime = block.timestamp + newTotalTime;
+    stream.ratePerSecond = newTotalAmount / newTotalTime;
+    stream.startTime = block.timestamp; // Reset for clean calculation
+    stream.lastWithdrawal = block.timestamp;
+  }
+
+  /**
+   * @notice Pause stream, called by employer
+   */
+  function pauseStream(address _employee) external {
+    Stream storage stream = s_streams[_msgSender()][_employee];
+    if (!stream.isActive) revert GainJar__StreamAlreadyPaused();
+
+    _processWithdrawal(msg.sender, _employee);
+
+    stream.isActive = false;
+    emit StreamPaused(msg.sender, _employee);
+  }
+
+  /**
+   * @notice Process withdraw current available amount
+   * @param _employer Employer assiciated stream
+   */
+  function withdraw(address _employer) external nonReentrant {
+    _processWithdrawal(_employer, _msgSender());
+
+    Stream storage stream = s_streams[_employer][_msgSender()];
+    if (_isStreamExpired(stream)) {
+      stream.isActive = false;
+      emit StreamEnded(_employer, _msgSender());
+    }
+  }
+
+  // =====================
+  // Public functions
+  // =====================
+
+  /**
+   * @notice This function get withdrawable amount of stream specified
+   * @param _employer Employer address
+   * @param _employee Employee address
+   */
+  function withdrawable(address _employer, address _employee) public view returns (uint256) {
+    Stream memory stream = s_streams[_employer][_employee];
+
+    if (!stream.isActive) return 0;
+
+    uint256 earnUntil = block.timestamp;
+
+    if (stream.streamType == StreamType.FINITE && stream.endTime > 0 && earnUntil > stream.endTime) {
+      earnUntil = stream.endTime;
+    }
+
+    uint256 elapsed = earnUntil - stream.lastWithdrawal;
+    uint256 earned = elapsed * stream.ratePerSecond;
+
+    if (stream.streamType == StreamType.FINITE) {
+      uint256 remainingBudget = stream.totalAmount - stream.totalWithdrawn;
+      if (earned > remainingBudget) {
+        earned = remainingBudget;
+      }
+    }
+
+    return earned;
+  }
+
+  /**
+   * @notice Get stream info with specified employer address and employee address
+   * @param _employer Employer address
+   * @param _employee Employee address
+   */
+  function getStreamInfo(address _employer, address _employee)
+    external
+    view
+    returns (
+      uint256 ratePerSecond,
+      uint256 startTime,
+      uint256 endTime,
+      uint256 totalAmount,
+      StreamType streamType,
+      uint256 totalEarned,
+      uint256 totalWithdrawn,
+      uint256 withdrawableNow,
+      bool isActive,
+      bool isExpired
+    )
+  {
+    Stream memory stream = s_streams[_employer][_employee];
+
+    uint256 earnUntil = block.timestamp;
+    if (stream.streamType == StreamType.FINITE && stream.endTime > 0 && earnUntil > stream.endTime) {
+      earnUntil = stream.endTime;
+    }
+
+    uint256 elapsed = earnUntil - stream.startTime;
+    totalEarned = elapsed * stream.ratePerSecond;
+
+    // Cap at totalAmount for finite streams
+    if (stream.streamType == StreamType.FINITE && totalEarned > stream.totalAmount) {
+      totalEarned = stream.totalAmount;
+    }
+
+    return (
+      stream.ratePerSecond,
+      stream.startTime,
+      stream.endTime,
+      stream.totalAmount,
+      stream.streamType,
+      totalEarned,
+      stream.totalWithdrawn,
+      withdrawable(_employer, _employee),
+      stream.isActive,
+      _isStreamExpired(stream)
+    );
+  }
+
+  /**
+   * @notice Get total of amount streamed per second accross all of the active streams
+   * @param _employer Employer address
+   * @return totalRate Sum of all the amount streamed per second
+   */
+  function getTotalFlowRate(address _employer) public view returns (uint256 totalRate) {
+    address[] memory employees = s_employeeList[_employer];
+
+    for (uint256 i = 0; i < employees.length; i++) {
+      Stream memory stream = s_streams[_employer][employees[i]];
+
+      if (stream.isActive && !_isStreamExpired(stream)) {
+        totalRate += stream.ratePerSecond;
+      }
+    }
+  }
+
+  /**
+   * @notice Get remaining time of vault to be zero with current flow rate
+   * @param _employer Employer address
+   * @return secondsUntilEmpty
+   */
+  function getVaultDepletionTime(address _employer) external view returns (uint256 secondsUntilEmpty) {
+    uint256 balance = s_vaultBalances[_employer];
+    uint256 flowRate = getTotalFlowRate(_employer);
+
+    if (flowRate == 0) return type(uint256).max;
+
+    secondsUntilEmpty = balance / flowRate;
+  }
+
   // =====================
   // Internal functions
   // =====================
@@ -234,5 +465,32 @@ contract GainJar is Context {
   function _isStreamExpired(Stream memory _stream) internal view returns (bool) {
     if (_stream.streamType == StreamType.INFINITE) return false;
     return block.timestamp >= _stream.endTime;
+  }
+
+  /**
+   * @notice Internal implementation withdrawal
+   * @param _employer Employer address
+   * @param _employee Employee address
+   */
+  function _processWithdrawal(address _employer, address _employee) internal {
+    Stream memory stream = s_streams[_employer][_employee];
+    if (!stream.isActive) revert GainJar__StreamNotActive();
+
+    uint256 amount = withdrawable(_employer, _employee);
+    if (amount == 0) revert GainJar__NothingToWithdraw();
+    if (s_vaultBalances[_employer] < amount) revert GainJar__InsufficientEmployerVault(_employer);
+
+    if (_isStreamExpired(stream)) {
+      stream.lastWithdrawal = stream.endTime;
+    } else {
+      stream.lastWithdrawal = block.timestamp;
+    }
+
+    stream.totalWithdrawn += amount;
+    s_vaultBalances[_employer] -= amount;
+
+    i_paymentToken.transfer(_employee, amount);
+
+    emit Withdrawal(_employee, amount);
   }
 }
