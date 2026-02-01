@@ -6,6 +6,7 @@ import "forge-std/console.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Context } from "@openzeppelin/contracts/utils/Context.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * A Payroll contract with ability to stream payment from employer to their employee
@@ -16,7 +17,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
  *
  * @author raihanmd
  */
-contract GainJar is Context, ReentrancyGuard {
+contract GainJar is Context, ReentrancyGuard, Ownable {
   // ==============
   // Events
   // ==============
@@ -51,6 +52,7 @@ contract GainJar is Context, ReentrancyGuard {
   error GainJar__StreamExists();
   error GainJar__StreamNotActive();
   error GainJar__StreamAlreadyPaused();
+  error GainJar__AmountExceedsEarned();
 
   error GainJar__AmountTooSmall();
 
@@ -68,6 +70,23 @@ contract GainJar is Context, ReentrancyGuard {
   enum StreamType {
     INFINITE,
     FINITE
+  }
+
+  /**
+   * @notice Enum represent health factor status of vault
+   */
+  enum VaultStatus {
+    // > 30 days
+    HEALTHY,
+
+    // 7-30 days
+    WARNING,
+
+    // 3-7 days
+    CRITICAL,
+
+    // <3 days
+    EMERGENCY
   }
 
   struct Stream {
@@ -99,8 +118,8 @@ contract GainJar is Context, ReentrancyGuard {
     bool isActive;
   }
 
-  // Vault token precission
-  uint256 constant VAULT_TOKEN_PRECISION = 1e6;
+  // 1 week minimum vault coverage based by flow rate
+  uint256 private constant MIN_COVERAGE_DAYS_SECOND = 7 days;
 
   // Employer => Employee => Stream
   mapping(address => mapping(address => Stream)) s_streams;
@@ -121,7 +140,7 @@ contract GainJar is Context, ReentrancyGuard {
   // Constructor
   // ==============
 
-  constructor(address _paymentTokenAddress) {
+  constructor(address _paymentTokenAddress) Ownable(_msgSender()) {
     i_paymentToken = IERC20(_paymentTokenAddress);
   }
 
@@ -152,42 +171,7 @@ contract GainJar is Context, ReentrancyGuard {
    * @param _period Time period on SECOND (3600 = hourly, 2592000 = monthly)
    */
   function createInfiniteStream(address _employee, uint256 _amount, uint256 _period) external {
-    if (_employee == address(0)) {
-      revert GainJar__InvalidAddress();
-    }
-
-    if (_period == 0) {
-      revert GainJar__PeriodCantBeZero();
-    }
-
-    if (_amount < _period) {
-      revert GainJar__AmountTooSmall();
-    }
-
-    if (!s_streams[_msgSender()][_employee].isActive) {
-      revert GainJar__StreamExists();
-    }
-
-    // Calculate rate per second based on period given
-    uint256 ratePerSecond = _amount / _period;
-    uint256 finalPayout = _amount % _period;
-
-    s_streams[_msgSender()][_employee] = Stream({
-      ratePerSecond: ratePerSecond,
-      startTime: block.timestamp,
-      endTime: 0,
-      totalAmount: 0,
-      lastWithdrawal: block.timestamp,
-      totalWithdrawn: 0,
-      finalPayout: finalPayout,
-      streamType: StreamType.INFINITE,
-      isActive: true
-    });
-
-    s_employeeIndex[_msgSender()][_employee] = s_employeeList[_msgSender()].length;
-    s_employeeList[_msgSender()].push(_employee);
-
-    emit StreamCreated(_msgSender(), _employee, ratePerSecond, block.timestamp, 0, 0, StreamType.INFINITE, finalPayout);
+    _createStream(_employee, _amount, _period, StreamType.INFINITE);
   }
 
   /**
@@ -197,45 +181,7 @@ contract GainJar is Context, ReentrancyGuard {
    * @param _durationInSeconds Streaming time
    */
   function createFiniteStream(address _employee, uint256 _amount, uint256 _durationInSeconds) external {
-    if (_employee == address(0)) {
-      revert GainJar__InvalidAddress();
-    }
-
-    if (_durationInSeconds == 0) {
-      revert GainJar__PeriodCantBeZero();
-    }
-
-    if (_amount < _durationInSeconds) {
-      revert GainJar__AmountTooSmall();
-    }
-
-    if (!s_streams[_msgSender()][_employee].isActive) {
-      revert GainJar__StreamExists();
-    }
-
-    uint256 ratePerSecond = _amount / _durationInSeconds;
-    uint256 finalPayout = _amount % _durationInSeconds;
-
-    uint256 endTime = block.timestamp + _durationInSeconds;
-
-    s_streams[_msgSender()][_employee] = Stream({
-      ratePerSecond: ratePerSecond,
-      startTime: block.timestamp,
-      endTime: endTime,
-      totalAmount: _amount,
-      lastWithdrawal: block.timestamp,
-      totalWithdrawn: 0,
-      finalPayout: finalPayout,
-      streamType: StreamType.FINITE,
-      isActive: true
-    });
-
-    s_employeeIndex[_msgSender()][_employee] = s_employeeList[_msgSender()].length;
-    s_employeeList[_msgSender()].push(_employee);
-
-    emit StreamCreated(
-      _msgSender(), _employee, ratePerSecond, block.timestamp, endTime, _amount, StreamType.FINITE, finalPayout
-    );
+    _createStream(_employee, _amount, _durationInSeconds, StreamType.FINITE);
   }
 
   // ========================================
@@ -300,7 +246,7 @@ contract GainJar is Context, ReentrancyGuard {
     if (stream.streamType != StreamType.FINITE) revert GainJar__OnlyFiniteStream();
 
     // Withdraw accumulated first
-    _processWithdrawal(msg.sender, _employee);
+    _processWithdrawal(_msgSender(), _employee);
 
     // Calculate new total and recalculate rate
     uint256 remainingTime = stream.endTime - block.timestamp;
@@ -341,6 +287,103 @@ contract GainJar is Context, ReentrancyGuard {
     }
   }
 
+  function withdrawPartial(address _employer, uint256 _amount) external nonReentrant {
+    Stream storage stream = s_streams[_employer][_msgSender()];
+    if (!stream.isActive) revert GainJar__StreamNotActive();
+
+    uint256 maxWithdrawable = withdrawable(_employer, _msgSender());
+    if (_amount > maxWithdrawable) revert GainJar__AmountExceedsEarned();
+
+    uint256 vaultBalance = s_vaultBalances[_employer];
+    if (_amount > vaultBalance) revert GainJar__InsufficientEmployerVault(_employer);
+
+    // Update state
+    stream.lastWithdrawal = block.timestamp;
+    stream.totalWithdrawn += _amount;
+    s_vaultBalances[_employer] -= _amount;
+
+    // Transfer
+    i_paymentToken.transfer(_msgSender(), _amount);
+
+    emit Withdrawal(_msgSender(), _amount);
+  }
+
+  /**
+   * @notice Get detailed information about employer's vault health
+   */
+  function getVaultHealth(address _employer)
+    external
+    view
+    returns (
+      uint256 balance,
+      uint256 flowRate,
+      uint256 daysRemaining,
+      VaultStatus status,
+      bool canCreateNewStream,
+      uint256 maxAdditionalFlowRate
+    )
+  {
+    balance = s_vaultBalances[_employer];
+    flowRate = getTotalFlowRate(_employer);
+
+    uint256 depletionTime = getVaultDepletionTime(_employer);
+    daysRemaining = depletionTime / 1 days;
+
+    status = getVaultStatus(_employer);
+
+    // Can create new stream only if HEALTHY or WARNING
+    canCreateNewStream = (status == VaultStatus.HEALTHY || status == VaultStatus.WARNING);
+
+    // Max additional flow rate before hitting minimum threshold
+    uint256 currentRequired = flowRate * MIN_COVERAGE_DAYS_SECOND;
+    if (balance > currentRequired) {
+      maxAdditionalFlowRate = (balance - currentRequired) / MIN_COVERAGE_DAYS_SECOND;
+    } else {
+      maxAdditionalFlowRate = 0;
+    }
+
+    return (balance, flowRate, daysRemaining, status, canCreateNewStream, maxAdditionalFlowRate);
+  }
+
+  /**
+   * @notice Get amount that have earned so far but if employer's balance insufficient is lesser than total earned, return the max of employer's balance
+   */
+  function getSafeWithdrawableAmount(address _employer, address _employee)
+    external
+    view
+    returns (uint256 totalEarned, uint256 safeAmount, bool isFullySafe)
+  {
+    totalEarned = withdrawable(_employer, _employee);
+    uint256 vaultBalance = s_vaultBalances[_employer];
+
+    if (vaultBalance >= totalEarned) {
+      // Vault has enough, fully safe
+      safeAmount = totalEarned;
+      isFullySafe = true;
+    } else {
+      // Vault doesn't have enough, can only withdraw what's available
+      safeAmount = vaultBalance;
+      isFullySafe = false;
+    }
+
+    return (totalEarned, safeAmount, isFullySafe);
+  }
+
+  /**
+   * @return Bool has the employer's vault has the minimum amount of required based flow rate within MIN DAYS (7 days)
+   */
+  function hasMinimumCoverage(address _employer) external view returns (bool) {
+    uint256 required = getMinRequiredVaultBalance(_employer);
+    return s_vaultBalances[_employer] >= required;
+  }
+
+  /**
+   * @return MIN_COVERAGE_DAYS_SECOND
+   */
+  function getMinCoverageDaysSecond() external pure returns (uint256) {
+    return MIN_COVERAGE_DAYS_SECOND;
+  }
+
   // =====================
   // Public functions
   // =====================
@@ -350,7 +393,7 @@ contract GainJar is Context, ReentrancyGuard {
    * @param _employer Employer address
    * @param _employee Employee address
    */
-  function withdrawable(address _employer, address _employee) public view returns (uint256) {
+  function withdrawable(address _employer, address _employee) public view returns (uint256 earned) {
     Stream memory stream = s_streams[_employer][_employee];
 
     if (!stream.isActive) return 0;
@@ -362,7 +405,7 @@ contract GainJar is Context, ReentrancyGuard {
     }
 
     uint256 elapsed = earnUntil - stream.lastWithdrawal;
-    uint256 earned = elapsed * stream.ratePerSecond;
+    earned = elapsed * stream.ratePerSecond;
 
     if (stream.streamType == StreamType.FINITE) {
       uint256 remainingBudget = stream.totalAmount - stream.totalWithdrawn;
@@ -370,8 +413,6 @@ contract GainJar is Context, ReentrancyGuard {
         earned = remainingBudget;
       }
     }
-
-    return earned;
   }
 
   /**
@@ -446,13 +487,36 @@ contract GainJar is Context, ReentrancyGuard {
    * @param _employer Employer address
    * @return secondsUntilEmpty
    */
-  function getVaultDepletionTime(address _employer) external view returns (uint256 secondsUntilEmpty) {
+  function getVaultDepletionTime(address _employer) public view returns (uint256 secondsUntilEmpty) {
     uint256 balance = s_vaultBalances[_employer];
     uint256 flowRate = getTotalFlowRate(_employer);
 
     if (flowRate == 0) return type(uint256).max;
 
     secondsUntilEmpty = balance / flowRate;
+  }
+
+  /**
+   * @notice Get minimum amount employer vault that required for MIN_COVERAGE_DAYS_SECOND coverage based on flow rate
+   * @param _employer Employer
+   */
+  function getMinRequiredVaultBalance(address _employer) public view returns (uint256) {
+    uint256 flowRate = getTotalFlowRate(_employer);
+    uint256 minRequiredBalance = flowRate * MIN_COVERAGE_DAYS_SECOND;
+    return minRequiredBalance;
+  }
+
+  /**
+   * @notice Get employer vault health status
+   */
+  function getVaultStatus(address _employer) public view returns (VaultStatus) {
+    uint256 depletionTime = getVaultDepletionTime(_employer);
+    uint256 daysRemaining = depletionTime / 1 days;
+
+    if (daysRemaining >= 30) return VaultStatus.HEALTHY;
+    if (daysRemaining >= 7) return VaultStatus.WARNING;
+    if (daysRemaining >= 3) return VaultStatus.CRITICAL;
+    return VaultStatus.EMERGENCY;
   }
 
   // =====================
@@ -473,7 +537,7 @@ contract GainJar is Context, ReentrancyGuard {
    * @param _employee Employee address
    */
   function _processWithdrawal(address _employer, address _employee) internal {
-    Stream memory stream = s_streams[_employer][_employee];
+    Stream storage stream = s_streams[_employer][_employee];
     if (!stream.isActive) revert GainJar__StreamNotActive();
 
     uint256 amount = withdrawable(_employer, _employee);
@@ -482,6 +546,7 @@ contract GainJar is Context, ReentrancyGuard {
 
     if (_isStreamExpired(stream)) {
       stream.lastWithdrawal = stream.endTime;
+      amount += stream.finalPayout;
     } else {
       stream.lastWithdrawal = block.timestamp;
     }
@@ -492,5 +557,57 @@ contract GainJar is Context, ReentrancyGuard {
     i_paymentToken.transfer(_employee, amount);
 
     emit Withdrawal(_employee, amount);
+  }
+
+  /**
+   * @notice Internal implementation of creat stream logic
+   * @param _employee Employee address
+   * @param _amount Amount per period (e.g., 50e6 for $50/hour) (WEI)
+   * @param _durationInSeconds Streaming time
+   */
+  function _createStream(address _employee, uint256 _amount, uint256 _durationInSeconds, StreamType _type) internal {
+    if (_employee == address(0)) {
+      revert GainJar__InvalidAddress();
+    }
+
+    if (_durationInSeconds == 0) {
+      revert GainJar__PeriodCantBeZero();
+    }
+
+    if (_amount < _durationInSeconds) {
+      revert GainJar__AmountTooSmall();
+    }
+
+    if (s_streams[_msgSender()][_employee].isActive) {
+      revert GainJar__StreamExists();
+    }
+
+    uint256 ratePerSecond = _amount / _durationInSeconds;
+
+    uint256 newFlowRate = getTotalFlowRate(_msgSender()) + ratePerSecond;
+    uint256 minRequiredBalance = newFlowRate * MIN_COVERAGE_DAYS_SECOND;
+
+    if (s_vaultBalances[_msgSender()] < minRequiredBalance) revert GainJar__InsufficientEmployerVault(_msgSender());
+
+    uint256 endTime = _type == StreamType.FINITE ? block.timestamp + _durationInSeconds : 0;
+    uint256 totalAmount = _type == StreamType.FINITE ? _amount : 0;
+    uint256 finalPayout = _type == StreamType.FINITE ? _amount % _durationInSeconds : 0;
+
+    s_streams[_msgSender()][_employee] = Stream({
+      ratePerSecond: ratePerSecond,
+      startTime: block.timestamp,
+      endTime: endTime,
+      totalAmount: totalAmount,
+      lastWithdrawal: block.timestamp,
+      totalWithdrawn: 0,
+      finalPayout: finalPayout,
+      streamType: _type,
+      isActive: true
+    });
+
+    s_employeeIndex[_msgSender()][_employee] = s_employeeList[_msgSender()].length;
+    s_employeeList[_msgSender()].push(_employee);
+
+    emit StreamCreated(_msgSender(), _employee, ratePerSecond, block.timestamp, endTime, _amount, _type, finalPayout);
   }
 }
