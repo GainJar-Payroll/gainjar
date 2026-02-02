@@ -23,7 +23,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   // ==============
 
   event FundDeposited(address indexed _employer, uint256 _amount);
-  event Withdrawal(address indexed _employee, uint256 _amount);
+  event Withdrawal(address indexed _employee, uint256 _amount, uint256 _fee);
   event StreamCreated(
     address indexed _employer,
     address indexed _employee,
@@ -36,6 +36,9 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   );
   event StreamPaused(address indexed _employer, address indexed _employee);
   event StreamEnded(address indexed _employer, address indexed _employee);
+  event Liquidated(address indexed _liquidator, address indexed _employer, uint256 _reward, uint256 _streamspaused);
+  event FeeUpdated(uint256 _oldFee, uint256 _newFee);
+  event FeeClaimed(address indexed _owner, uint256 _amount);
 
   // ==============
   // Errors
@@ -62,6 +65,14 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   error GainJar__NothingToWithdraw();
 
   error GainJar__InsufficientEmployerVault(address _employer);
+
+  error GainJar__VaultNotEligibleForLiquidation(VaultStatus _currentStatus);
+  error GainJar__LiquidationCooldownActive(uint256 _timeRemaining);
+  error GainJar__InsufficientVaultForReward();
+  error GainJar__AlreadyLiquidated();
+
+  error GainJar__FeeExceedsMax(uint256 _requested, uint256 _max);
+  error GainJar__NoFeesToClaim();
 
   // ======================
   // State & Data types
@@ -121,20 +132,36 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   // 1 week minimum vault coverage based by flow rate
   uint256 private constant MIN_COVERAGE_DAYS_SECOND = 7 days;
 
+  uint256 private constant LIQUIDATION_REWARD = 10e6;
+
+  uint256 private constant LIQUIDATION_COOLDOWN = 1 hours;
+
+  uint256 private constant MAX_FEE_BASIS_POINTS = 100;
+
   // Employer => Employee => Stream
-  mapping(address => mapping(address => Stream)) s_streams;
+  mapping(address => mapping(address => Stream)) private s_streams;
 
   // Employer => USDC stored balance on this contract
-  mapping(address => uint256) s_vaultBalances;
+  mapping(address => uint256) private s_vaultBalances;
 
   // Employer => Employee[]
-  mapping(address => address[]) s_employeeList;
+  mapping(address => address[]) private s_employeeList;
 
   // Employer => Employee => Employee index on s_employeeList
-  mapping(address => mapping(address => uint256)) s_employeeIndex;
+  mapping(address => mapping(address => uint256)) private s_employeeIndex;
+
+  // Track last liquidation time per employer
+  mapping(address => uint256) private s_lastLiquidationTime;
+
+  // Track if employer is already liquidated (streams paused by liquidation)
+  mapping(address => bool) private s_isLiquidated;
 
   // USDC as for payment token
   IERC20 private immutable i_paymentToken;
+
+  uint256 private s_feeBasisPoints = 5;
+
+  uint256 private s_accumulatedFees;
 
   // ==============
   // Constructor
@@ -147,6 +174,35 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   // =====================
   // External functions
   // =====================
+
+  /**
+   * @notice Update protocol fee (only owner)
+   * @param _newFeeBasisPoints New fee in basis points (max 100 = 1%)
+   */
+  function updateFee(uint256 _newFeeBasisPoints) external onlyOwner {
+    if (_newFeeBasisPoints > MAX_FEE_BASIS_POINTS) {
+      revert GainJar__FeeExceedsMax(_newFeeBasisPoints, MAX_FEE_BASIS_POINTS);
+    }
+
+    uint256 oldFee = s_feeBasisPoints;
+    s_feeBasisPoints = _newFeeBasisPoints;
+
+    emit FeeUpdated(oldFee, _newFeeBasisPoints);
+  }
+
+  /**
+   * @notice Claim accumulated fees (only owner)
+   */
+  function claimFees() external onlyOwner {
+    if (s_accumulatedFees == 0) revert GainJar__NoFeesToClaim();
+
+    uint256 amount = s_accumulatedFees;
+    s_accumulatedFees = 0;
+
+    i_paymentToken.transfer(_msgSender(), amount);
+
+    emit FeeClaimed(_msgSender(), amount);
+  }
 
   /**
    * Deposit payment token (USDC) to this contract
@@ -302,10 +358,128 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     stream.totalWithdrawn += _amount;
     s_vaultBalances[_employer] -= _amount;
 
-    // Transfer
-    i_paymentToken.transfer(_msgSender(), _amount);
+    (uint256 fee, uint256 netAmount) = _calculateFee(_amount);
 
-    emit Withdrawal(_msgSender(), _amount);
+    // Transfer
+    i_paymentToken.transfer(_msgSender(), netAmount);
+    s_accumulatedFees += fee;
+
+    emit Withdrawal(_msgSender(), _amount, fee);
+  }
+
+  /**
+   * @notice Liquidate an employer's streams when vault is in EMERGENCY status
+   * @param _employer Employer address to liquidate
+   *
+   * Flow:
+   * 1. Check vault status is EMERGENCY
+   * 2. Check cooldown passed
+   * 3. Check vault has enough for reward
+   * 4. Pause all active streams
+   * 5. Pay liquidator reward
+   */
+  function liquidate(address _employer) external nonReentrant {
+    // 1. Check status is EMERGENCY
+    VaultStatus status = getVaultStatus(_employer);
+    if (status != VaultStatus.EMERGENCY) {
+      revert GainJar__VaultNotEligibleForLiquidation(status);
+    }
+
+    // 2. Check cooldown
+    uint256 lastLiquidation = s_lastLiquidationTime[_employer];
+    if (block.timestamp < lastLiquidation + LIQUIDATION_COOLDOWN) {
+      revert GainJar__LiquidationCooldownActive((lastLiquidation + LIQUIDATION_COOLDOWN) - block.timestamp);
+    }
+
+    // 3. Check vault can cover reward
+    if (s_vaultBalances[_employer] < LIQUIDATION_REWARD) {
+      revert GainJar__InsufficientVaultForReward();
+    }
+
+    // 4. Pause all active streams
+    address[] memory employees = s_employeeList[_employer];
+    uint256 pausedCount = 0;
+
+    for (uint256 i = 0; i < employees.length; i++) {
+      Stream storage stream = s_streams[_employer][employees[i]];
+
+      if (stream.isActive && !_isStreamExpired(stream)) {
+        stream.isActive = false;
+        pausedCount++;
+        emit StreamPaused(_employer, employees[i]);
+      }
+    }
+
+    // 5. Pay liquidator reward from employer's vault
+    s_vaultBalances[_employer] -= LIQUIDATION_REWARD;
+    i_paymentToken.transfer(_msgSender(), LIQUIDATION_REWARD);
+
+    // 6. Update state
+    s_lastLiquidationTime[_employer] = block.timestamp;
+    s_isLiquidated[_employer] = true;
+
+    emit Liquidated(_msgSender(), _employer, LIQUIDATION_REWARD, pausedCount);
+  }
+
+  /**
+   * @notice Employer can "unlock" after depositing enough to restore minimum coverage
+   * Called after employer deposits more funds post-liquidation
+   */
+  function restoreAfterLiquidation() external {
+    if (!s_isLiquidated[_msgSender()]) return;
+
+    // Check if vault now has minimum coverage
+    // Note: since all streams are paused, flowRate = 0
+    // Employer must re-activate streams manually after this
+    s_isLiquidated[_msgSender()] = false;
+  }
+
+  // =====================
+  // View functions
+  // =====================
+
+  function getFeeBasisPoints() external view returns (uint256) {
+    return s_feeBasisPoints;
+  }
+
+  function getAccumulatedFees() external view returns (uint256) {
+    return s_accumulatedFees;
+  }
+
+  /**
+   * @notice Get employer's vault liquidation information
+   *
+   * @param _employer Employer address to query
+   *
+   * @return eligible True if the employer vault can be liquidated right now
+   * @return cooldownLeft Seconds remaining until the next liquidation is allowed
+   * @return isCurrentlyLiquidated True if the employer vault is currently in liquidated state
+   * @return reward Liquidation reward amount (in payment token)
+   */
+  function getLiquidationInfo(address _employer)
+    external
+    view
+    returns (
+      bool eligible, // Can be liquidated right now?
+      uint256 cooldownLeft, // Seconds until next liquidation possible
+      bool isCurrentlyLiquidated,
+      uint256 reward // Current reward amount
+    )
+  {
+    VaultStatus status = getVaultStatus(_employer);
+    eligible = (status == VaultStatus.EMERGENCY) && !s_isLiquidated[_employer];
+
+    uint256 lastLiquidation = s_lastLiquidationTime[_employer];
+    if (block.timestamp < lastLiquidation + LIQUIDATION_COOLDOWN) {
+      cooldownLeft = (lastLiquidation + LIQUIDATION_COOLDOWN) - block.timestamp;
+    }
+
+    isCurrentlyLiquidated = s_isLiquidated[_employer];
+    reward = LIQUIDATION_REWARD;
+  }
+
+  function isLiquidated(address _employer) external view returns (bool) {
+    return s_isLiquidated[_employer];
   }
 
   /**
@@ -384,37 +558,6 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     return MIN_COVERAGE_DAYS_SECOND;
   }
 
-  // =====================
-  // Public functions
-  // =====================
-
-  /**
-   * @notice This function get withdrawable amount of stream specified
-   * @param _employer Employer address
-   * @param _employee Employee address
-   */
-  function withdrawable(address _employer, address _employee) public view returns (uint256 earned) {
-    Stream memory stream = s_streams[_employer][_employee];
-
-    if (!stream.isActive) return 0;
-
-    uint256 earnUntil = block.timestamp;
-
-    if (stream.streamType == StreamType.FINITE && stream.endTime > 0 && earnUntil > stream.endTime) {
-      earnUntil = stream.endTime;
-    }
-
-    uint256 elapsed = earnUntil - stream.lastWithdrawal;
-    earned = elapsed * stream.ratePerSecond;
-
-    if (stream.streamType == StreamType.FINITE) {
-      uint256 remainingBudget = stream.totalAmount - stream.totalWithdrawn;
-      if (earned > remainingBudget) {
-        earned = remainingBudget;
-      }
-    }
-  }
-
   /**
    * @notice Get stream info with specified employer address and employee address
    * @param _employer Employer address
@@ -451,6 +594,10 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
       totalEarned = stream.totalAmount;
     }
 
+    withdrawableNow = withdrawable(_employer, _employee);
+
+    bool isStreamExpired = _isStreamExpired(stream);
+
     return (
       stream.ratePerSecond,
       stream.startTime,
@@ -459,10 +606,37 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
       stream.streamType,
       totalEarned,
       stream.totalWithdrawn,
-      withdrawable(_employer, _employee),
+      withdrawableNow,
       stream.isActive,
-      _isStreamExpired(stream)
+      isStreamExpired
     );
+  }
+
+  /**
+   * @notice This function get withdrawable amount of stream specified
+   * @param _employer Employer address
+   * @param _employee Employee address
+   */
+  function withdrawable(address _employer, address _employee) public view returns (uint256 earned) {
+    Stream memory stream = s_streams[_employer][_employee];
+
+    if (!stream.isActive) return 0;
+
+    uint256 earnUntil = block.timestamp;
+
+    if (stream.streamType == StreamType.FINITE && stream.endTime > 0 && earnUntil > stream.endTime) {
+      earnUntil = stream.endTime;
+    }
+
+    uint256 elapsed = earnUntil - stream.lastWithdrawal;
+    earned = elapsed * stream.ratePerSecond;
+
+    if (stream.streamType == StreamType.FINITE) {
+      uint256 remainingBudget = stream.totalAmount - stream.totalWithdrawn;
+      if (earned > remainingBudget) {
+        earned = remainingBudget;
+      }
+    }
   }
 
   /**
@@ -524,6 +698,15 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   // =====================
 
   /**
+   * @notice Calculate fee from given amount
+   * @return fee amount, and net amount after fee
+   */
+  function _calculateFee(uint256 _amount) internal view returns (uint256 fee, uint256 netAmount) {
+    fee = (_amount * s_feeBasisPoints) / 10000; // basis points math
+    netAmount = _amount - fee;
+  }
+
+  /**
    * @return Is stream that passed in expired state (FINITE case only)
    */
   function _isStreamExpired(Stream memory _stream) internal view returns (bool) {
@@ -554,9 +737,12 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     stream.totalWithdrawn += amount;
     s_vaultBalances[_employer] -= amount;
 
-    i_paymentToken.transfer(_employee, amount);
+    (uint256 fee, uint256 netAmount) = _calculateFee(amount);
 
-    emit Withdrawal(_employee, amount);
+    i_paymentToken.transfer(_employee, netAmount);
+    s_accumulatedFees += fee;
+
+    emit Withdrawal(_employee, amount, fee);
   }
 
   /**
