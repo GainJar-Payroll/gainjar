@@ -1,0 +1,18 @@
+[arbitrum-sepolia]
+endpoint_url = "${ARB_SEPOLIA_ENDPOINT_URL}"
+
+[arbitrum-sepolia.address]
+usdc = "0x0000000000000000000000000000000000000000"
+
+[arbitrum-sepolia.bool]
+with_usdc_mock = true
+
+[anvil]
+endpoint_url = "${ARB_SEPOLIA_ENDPOINT_URL}"
+
+[anvil.address]
+usdc = "0x0000000000000000000000000000000000000000"
+gainjar = "0xA15BB66138824a1c7167f5E85b957d04Dd34E468"
+
+[anvil.bool]
+with_usdc_mock = true
