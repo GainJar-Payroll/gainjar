@@ -5,18 +5,18 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Solidity](https://img.shields.io/badge/Solidity-%5E0.8.0-blue)](https://docs.soliditylang.org/)
 
-## 🌟 Overview
+## Overview
 
 GainJar is a smart contract protocol that revolutionizes payroll by enabling **money streaming** - employees earn their salary in real-time, second by second, and can withdraw their earned wages at any moment without waiting for traditional pay cycles.
 
 ### Key Features
 
-- ⚡ **Real-time Streaming** - Salary streams continuously, second by second
-- 🔄 **Two Stream Types** - Support for both infinite (full-time) and finite (project-based) employment
-- 💼 **Employer Vault System** - Secure fund management with health monitoring
-- 🛡️ **Liquidation Protection** - Automatic employee protection when employer funds run low
-- 📊 **Transparent Accounting** - All transactions and balances are on-chain and verifiable
-- 💸 **Flexible Withdrawals** - Employees can withdraw earned wages anytime (full or partial)
+- **Real-time Streaming** - Salary streams continuously, second by second
+- **Two Stream Types** - Support for both infinite (full-time) and finite (project-based) employment
+- **Employer Vault System** - Secure fund management with health monitoring
+- **Liquidation Protection** - Automatic employee protection when employer funds run low
+- **Transparent Accounting** - All transactions and balances are on-chain and verifiable
+- **Flexible Withdrawals** - Employees can withdraw earned wages anytime (full or partial)
 
 ### Use Cases
 
@@ -26,7 +26,7 @@ GainJar is a smart contract protocol that revolutionizes payroll by enabling **m
 - **DAO Contributors** - Decentralized payroll for DAO team members
 - **Global Workforce** - Borderless payments in stablecoins (USDC)
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [How It Works](#how-it-works)
 - [Quick Start](#quick-start)
@@ -38,7 +38,7 @@ GainJar is a smart contract protocol that revolutionizes payroll by enabling **m
 - [Security](#security)
 - [License](#license)
 
-## 🔧 How It Works
+## How It Works
 
 ### The Flow
 
@@ -61,7 +61,7 @@ GainJar is a smart contract protocol that revolutionizes payroll by enabling **m
 5. **Vault health monitored** - system alerts if employer funds are running low
 6. **Liquidation protection** - employees protected if vault becomes critically low
 
-## 🚀 Quick Start
+## Quick Start
 
 ### For Employers
 
@@ -134,7 +134,7 @@ if (eligible) {
 }
 ```
 
-## 📊 Stream Types
+## Stream Types
 
 ### 1. Infinite Stream (Full-time Employment)
 
@@ -235,7 +235,7 @@ Example:
 bool hasCoverage = gainJar.hasMinimumCoverage(employerAddress);
 ```
 
-## ⚡ Liquidation Mechanism
+## Liquidation Mechanism
 
 The liquidation system protects employees when employer vaults run critically low.
 
@@ -294,7 +294,7 @@ if (eligible && cooldownRemaining == 0) {
 }
 ```
 
-## 💸 Fee Structure
+## Fee Structure
 
 GainJar charges a minimal protocol fee on employee withdrawals:
 
@@ -326,7 +326,7 @@ uint256 currentFee = gainJar.getFeeBasisPoints(); // Returns 5 (0.05%)
 uint256 accumulated = gainJar.getAccumulatedFees(); // Returns total fees
 ```
 
-## 📚 Documentation
+## Documentation
 
 Comprehensive documentation is available:
 
@@ -335,7 +335,7 @@ Comprehensive documentation is available:
 - **[Security Guide](./SECURITY.md)** - Security considerations, attack vectors, best practices
 - **[Examples](./EXAMPLES.md)** - Integration examples, use case implementations
 
-## 🔐 Security
+## Security
 
 ### Audits
 
@@ -404,13 +404,13 @@ forge create GainJar \
 
 -->
 
-## 🌐 Supported Networks
+## Supported Networks
 
 GainJar can be deployed on any EVM-compatible chain with USDC:
 
 - **Arbitrum Sepolia** - Mock USDC: `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please:
 
@@ -422,17 +422,17 @@ Contributions are welcome! Please:
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - OpenZeppelin for secure contract libraries
 - Foundry for the development framework
 - The DeFi community for inspiration
 
-## 📞 Support
+## Support
 
 - **Issues:** [GitHub Issues](https://github.com/raihanmd/gainjar/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/raihanmd/gainjar/discussions)
