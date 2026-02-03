@@ -36,7 +36,13 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   );
   event StreamPaused(address indexed _employer, address indexed _employee);
   event StreamEnded(address indexed _employer, address indexed _employee);
-  event Liquidated(address indexed _liquidator, address indexed _employer, uint256 _reward, uint256 _streamspaused);
+  event Liquidated(
+    address indexed _liquidator,
+    address indexed _employer,
+    uint256 _totalPaidToEmployees,
+    uint256 _reward,
+    uint256 _streamsPaused
+  );
   event FeeUpdated(uint256 _oldFee, uint256 _newFee);
   event FeeClaimed(address indexed _owner, uint256 _amount);
 
@@ -54,7 +60,6 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
 
   error GainJar__StreamExists();
   error GainJar__StreamNotActive();
-  error GainJar__StreamAlreadyPaused();
   error GainJar__AmountExceedsEarned();
 
   error GainJar__AmountTooSmall();
@@ -68,6 +73,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
 
   error GainJar__VaultNotEligibleForLiquidation(VaultStatus _currentStatus);
   error GainJar__LiquidationCooldownActive(uint256 _timeRemaining);
+  error GainJar__InsufficientVaultForLiquidation(uint256 _vaultBalance, uint256 _required);
   error GainJar__InsufficientVaultForReward();
   error GainJar__AlreadyLiquidated();
 
@@ -132,7 +138,17 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   // 1 week minimum vault coverage based by flow rate
   uint256 private constant MIN_COVERAGE_DAYS_SECOND = 7 days;
 
-  uint256 private constant LIQUIDATION_REWARD = 10e6;
+  // Reward floor: $1 USDC - minimum for profitable on Arbitrum
+  uint256 private constant LIQUIDATION_REWARD_FLOOR = 1e6;
+
+  // Reward cap: $50 USDC - protect employees from over taking
+  uint256 private constant LIQUIDATION_REWARD_CAP = 50e6;
+
+  // Base reward 5% from employees earning
+  uint256 private constant LIQUIDATION_BASE_RATE_BPS = 500;
+
+  // Severity multiplier for EMERGENCY (CRITICAL = 1x, EMERGENCY = 2x)
+  uint256 private constant EMERGENCY_SEVERITY_MULTIPLIER = 2;
 
   uint256 private constant LIQUIDATION_COOLDOWN = 1 hours;
 
@@ -152,9 +168,6 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
 
   // Track last liquidation time per employer
   mapping(address => uint256) private s_lastLiquidationTime;
-
-  // Track if employer is already liquidated (streams paused by liquidation)
-  mapping(address => bool) private s_isLiquidated;
 
   // USDC as for payment token
   IERC20 private immutable i_paymentToken;
@@ -226,7 +239,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
    * @param _amount Amount per period (e.g., 50e6 for $50/hour) (WEI)
    * @param _period Time period on SECOND (3600 = hourly, 2592000 = monthly)
    */
-  function createInfiniteStream(address _employee, uint256 _amount, uint256 _period) external {
+  function createInfiniteStream(address _employee, uint256 _amount, uint256 _period) public {
     _createStream(_employee, _amount, _period, StreamType.INFINITE);
   }
 
@@ -236,7 +249,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
    * @param _amount Amount per period (e.g., 50e6 for $50/hour) (WEI)
    * @param _durationInSeconds Streaming time
    */
-  function createFiniteStream(address _employee, uint256 _amount, uint256 _durationInSeconds) external {
+  function createFiniteStream(address _employee, uint256 _amount, uint256 _durationInSeconds) public {
     _createStream(_employee, _amount, _durationInSeconds, StreamType.FINITE);
   }
 
@@ -251,7 +264,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     uint256 durationSeconds = _durationInDays * 1 days;
 
     // Call internal create function
-    this.createFiniteStream(_employee, _totalAmount, durationSeconds);
+    createFiniteStream(_employee, _totalAmount, durationSeconds);
   }
 
   /**
@@ -259,11 +272,11 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
    */
   function createHourlyStream(
     address _employee,
-    uint256 _hourlyRate // e.g., 50 for $50/hour
+    uint256 _hourlyRate // e.g., 50e6 for $50/hour
   )
     external
   {
-    this.createInfiniteStream(_employee, _hourlyRate, 1 hours);
+    createInfiniteStream(_employee, _hourlyRate, 1 hours);
   }
 
   /**
@@ -271,11 +284,11 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
    */
   function createMonthlyStream(
     address _employee,
-    uint256 _monthlyRate // e.g., 5000 for $5,000/month
+    uint256 _monthlyRate // e.g., 5000e6 for $5,000/month
   )
     external
   {
-    this.createInfiniteStream(_employee, _monthlyRate, 30 days);
+    createInfiniteStream(_employee, _monthlyRate, 30 days);
   }
 
   /**
@@ -321,7 +334,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
    */
   function pauseStream(address _employee) external {
     Stream storage stream = s_streams[_msgSender()][_employee];
-    if (!stream.isActive) revert GainJar__StreamAlreadyPaused();
+    if (!stream.isActive) revert GainJar__StreamNotActive();
 
     _processWithdrawal(msg.sender, _employee);
 
@@ -381,7 +394,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   function liquidate(address _employer) external nonReentrant {
     // 1. Check status is EMERGENCY
     VaultStatus status = getVaultStatus(_employer);
-    if (status != VaultStatus.EMERGENCY) {
+    if (status != VaultStatus.CRITICAL && status != VaultStatus.EMERGENCY) {
       revert GainJar__VaultNotEligibleForLiquidation(status);
     }
 
@@ -391,47 +404,65 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
       revert GainJar__LiquidationCooldownActive((lastLiquidation + LIQUIDATION_COOLDOWN) - block.timestamp);
     }
 
-    // 3. Check vault can cover reward
-    if (s_vaultBalances[_employer] < LIQUIDATION_REWARD) {
-      revert GainJar__InsufficientVaultForReward();
+    address[] memory employees = s_employeeList[_employer];
+
+    // 3. First pass: hitung total earned (view-only, no state change)
+    uint256 totalEmployeeEarnings = 0;
+    for (uint256 i = 0; i < employees.length; i++) {
+      Stream memory stream = s_streams[_employer][employees[i]];
+      if (stream.isActive && !_isStreamExpired(stream)) {
+        totalEmployeeEarnings += withdrawable(_employer, employees[i]);
+      }
     }
 
-    // 4. Pause all active streams
-    address[] memory employees = s_employeeList[_employer];
-    uint256 pausedCount = 0;
+    // 4. Calculate dynamic reward
+    uint256 reward = _calculateLiquidationReward(totalEmployeeEarnings, status);
 
+    // 5. Check vault can cover everything
+    uint256 totalRequired = totalEmployeeEarnings + reward;
+    if (s_vaultBalances[_employer] < totalRequired) {
+      revert GainJar__InsufficientVaultForLiquidation(s_vaultBalances[_employer], totalRequired);
+    }
+
+    // 6. Second pass: withdraw + pause (state changes)
+    uint256 streamsPaused = 0;
     for (uint256 i = 0; i < employees.length; i++) {
       Stream storage stream = s_streams[_employer][employees[i]];
 
       if (stream.isActive && !_isStreamExpired(stream)) {
+        uint256 earned = withdrawable(_employer, employees[i]);
+
+        if (earned > 0) {
+          // Apply fee on employee withdrawal
+          (uint256 fee, uint256 netAmount) = _calculateFee(earned);
+
+          // Update stream state
+          stream.lastWithdrawal = block.timestamp;
+          stream.totalWithdrawn += earned;
+
+          // Transfer to employee
+          s_vaultBalances[_employer] -= earned;
+          i_paymentToken.transfer(employees[i], netAmount);
+          s_accumulatedFees += fee;
+
+          emit Withdrawal(employees[i], netAmount, fee);
+        }
+
+        // Pause stream
         stream.isActive = false;
-        pausedCount++;
+        streamsPaused++;
         emit StreamPaused(_employer, employees[i]);
       }
     }
 
-    // 5. Pay liquidator reward from employer's vault
-    s_vaultBalances[_employer] -= LIQUIDATION_REWARD;
-    i_paymentToken.transfer(_msgSender(), LIQUIDATION_REWARD);
+    // 7. Pay liquidator reward (no fee on reward)
+    s_vaultBalances[_employer] -= reward;
+    i_paymentToken.transfer(_msgSender(), reward);
 
-    // 6. Update state
+    // 8. Update state
     s_lastLiquidationTime[_employer] = block.timestamp;
-    s_isLiquidated[_employer] = true;
 
-    emit Liquidated(_msgSender(), _employer, LIQUIDATION_REWARD, pausedCount);
-  }
-
-  /**
-   * @notice Employer can "unlock" after depositing enough to restore minimum coverage
-   * Called after employer deposits more funds post-liquidation
-   */
-  function restoreAfterLiquidation() external {
-    if (!s_isLiquidated[_msgSender()]) return;
-
-    // Check if vault now has minimum coverage
-    // Note: since all streams are paused, flowRate = 0
-    // Employer must re-activate streams manually after this
-    s_isLiquidated[_msgSender()] = false;
+    emit Liquidated(_msgSender(), _employer, totalEmployeeEarnings, reward, streamsPaused);
   }
 
   // =====================
@@ -447,39 +478,47 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   }
 
   /**
-   * @notice Get employer's vault liquidation information
-   *
-   * @param _employer Employer address to query
-   *
-   * @return eligible True if the employer vault can be liquidated right now
-   * @return cooldownLeft Seconds remaining until the next liquidation is allowed
-   * @return isCurrentlyLiquidated True if the employer vault is currently in liquidated state
-   * @return reward Liquidation reward amount (in payment token)
+   * @notice Preview liquidation outcome before executing
    */
-  function getLiquidationInfo(address _employer)
+  function getLiquidationPreview(address _employer)
     external
     view
     returns (
-      bool eligible, // Can be liquidated right now?
-      uint256 cooldownLeft, // Seconds until next liquidation possible
-      bool isCurrentlyLiquidated,
-      uint256 reward // Current reward amount
+      bool eligible,
+      VaultStatus status,
+      uint256 totalEmployeeEarnings,
+      uint256 estimatedReward,
+      uint256 vaultAfterLiquidation,
+      uint256 cooldownRemaining
     )
   {
-    VaultStatus status = getVaultStatus(_employer);
-    eligible = (status == VaultStatus.EMERGENCY) && !s_isLiquidated[_employer];
+    status = getVaultStatus(_employer);
+    eligible = (status == VaultStatus.CRITICAL || status == VaultStatus.EMERGENCY);
 
+    // Cooldown check
     uint256 lastLiquidation = s_lastLiquidationTime[_employer];
     if (block.timestamp < lastLiquidation + LIQUIDATION_COOLDOWN) {
-      cooldownLeft = (lastLiquidation + LIQUIDATION_COOLDOWN) - block.timestamp;
+      cooldownRemaining = (lastLiquidation + LIQUIDATION_COOLDOWN) - block.timestamp;
+      eligible = false;
     }
 
-    isCurrentlyLiquidated = s_isLiquidated[_employer];
-    reward = LIQUIDATION_REWARD;
-  }
+    // Calculate total earned
+    address[] memory employees = s_employeeList[_employer];
+    for (uint256 i = 0; i < employees.length; i++) {
+      Stream memory stream = s_streams[_employer][employees[i]];
+      if (stream.isActive && !_isStreamExpired(stream)) {
+        totalEmployeeEarnings += withdrawable(_employer, employees[i]);
+      }
+    }
 
-  function isLiquidated(address _employer) external view returns (bool) {
-    return s_isLiquidated[_employer];
+    estimatedReward = _calculateLiquidationReward(totalEmployeeEarnings, status);
+
+    uint256 totalRequired = totalEmployeeEarnings + estimatedReward;
+    if (s_vaultBalances[_employer] < totalRequired) {
+      eligible = false;
+    }
+
+    vaultAfterLiquidation = s_vaultBalances[_employer] > totalRequired ? s_vaultBalances[_employer] - totalRequired : 0;
   }
 
   /**
@@ -795,5 +834,33 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     s_employeeList[_msgSender()].push(_employee);
 
     emit StreamCreated(_msgSender(), _employee, ratePerSecond, block.timestamp, endTime, _amount, _type, finalPayout);
+  }
+
+  /**
+   * @notice Calculate dynamic liquidation reward
+   * @param _totalEmployeeEarnings Sum of all employees' withdrawable amounts
+   * @param _status Current vault status (must be CRITICAL or EMERGENCY)
+   * @return reward Amount liquidator receives
+   */
+  function _calculateLiquidationReward(uint256 _totalEmployeeEarnings, VaultStatus _status)
+    internal
+    pure
+    returns (uint256 reward)
+  {
+    // Base reward: 5% dari total earned
+    reward = (_totalEmployeeEarnings * LIQUIDATION_BASE_RATE_BPS) / 10000;
+
+    // Severity multiplier: EMERGENCY = 2x
+    if (_status == VaultStatus.EMERGENCY) {
+      reward = reward * EMERGENCY_SEVERITY_MULTIPLIER;
+    }
+
+    // Apply floor dan cap
+    if (reward < LIQUIDATION_REWARD_FLOOR) {
+      reward = LIQUIDATION_REWARD_FLOOR;
+    }
+    if (reward > LIQUIDATION_REWARD_CAP) {
+      reward = LIQUIDATION_REWARD_CAP;
+    }
   }
 }
