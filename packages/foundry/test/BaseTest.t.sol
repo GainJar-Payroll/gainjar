@@ -16,6 +16,7 @@ contract BaseTest is Test {
   address public employer;
   address public employee;
   address public employee2;
+  address public employee3;
 
   uint256 constant INITIAL_MINT = 10_000_000 * 1e6; // 10M USDC (6 decimals)
   uint256 constant MIN_COVERAGE_DAYS = 7 days;
@@ -26,6 +27,7 @@ contract BaseTest is Test {
     employer = makeAddr("employer");
     employee = makeAddr("employee");
     employee2 = makeAddr("employee2");
+    employee3 = makeAddr("employee3");
 
     mockToken = new MockERC20("USDC Mock", "USDC");
     mockToken.mint(employer, INITIAL_MINT);
@@ -72,10 +74,6 @@ contract BaseTest is Test {
     vm.warp(block.timestamp + 1 days);
     vm.prank(employee);
     gainjar.withdraw(employer);
-    assertEq(
-      uint256(gainjar.getVaultStatus(employer)),
-      uint256(GainJar.VaultStatus.EMERGENCY),
-      "EMERGENCY"
-    );
+    assertEq(uint256(gainjar.getVaultStatus(employer)), uint256(GainJar.VaultStatus.EMERGENCY), "EMERGENCY");
   }
 }

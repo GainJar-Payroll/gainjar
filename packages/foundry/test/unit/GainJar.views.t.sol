@@ -56,8 +56,7 @@ contract GainJarViewsTest is BaseTest {
     gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
 
     (
-      uint256 ratePerSecond,
-      ,
+      uint256 ratePerSecond,,
       uint256 endTime,
       uint256 totalAmount,
       GainJar.StreamType streamType,
@@ -212,19 +211,12 @@ contract GainJarViewsTest is BaseTest {
 
   function test_GetLiquidationPreview_WhenEligible() public {
     _setupEmployerInEmergency();
-    (
-      bool eligible,
-      GainJar.VaultStatus status,
-      ,
-      uint256 estimatedReward,
-      ,
-      uint256 cooldownRemaining
-    ) = gainjar.getLiquidationPreview(employer);
+    (bool eligible, GainJar.VaultStatus status,, uint256 estimatedReward,, uint256 cooldownRemaining) =
+      gainjar.getLiquidationPreview(employer);
 
     assertTrue(eligible, "eligible");
     assertTrue(
-      status == GainJar.VaultStatus.CRITICAL || status == GainJar.VaultStatus.EMERGENCY,
-      "CRITICAL or EMERGENCY"
+      status == GainJar.VaultStatus.CRITICAL || status == GainJar.VaultStatus.EMERGENCY, "CRITICAL or EMERGENCY"
     );
     assertGt(estimatedReward, 0, "reward > 0");
     assertEq(cooldownRemaining, 0, "no cooldown");
@@ -259,5 +251,269 @@ contract GainJarViewsTest is BaseTest {
 
     (,,,,, uint256 maxAdditionalFlowRate) = gainjar.getVaultHealth(employer);
     assertGt(maxAdditionalFlowRate, 0, "can add more flow");
+  }
+
+  // ============== getActiveEmployeeCount / getTotalEmployeeCount ==============
+
+  function test_GetActiveEmployeeCount_NoEmployees() public view {
+    assertEq(gainjar.getActiveEmployeeCount(employer), 0, "no active employees");
+  }
+
+  function test_GetActiveEmployeeCount_SingleActiveEmployee() public {
+    vm.prank(employer);
+    gainjar.deposit(700 * 1e6);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
+
+    assertEq(gainjar.getActiveEmployeeCount(employer), 1, "1 active employee");
+  }
+
+  function test_GetActiveEmployeeCount_AfterPause_DecreasesCount() public {
+    vm.prank(employer);
+    gainjar.deposit(700 * 1e6);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
+
+    assertEq(gainjar.getActiveEmployeeCount(employer), 1, "1 active before pause");
+
+    vm.warp(block.timestamp + 1 days);
+
+    vm.prank(employer);
+    gainjar.pauseStream(employee);
+
+    assertEq(gainjar.getActiveEmployeeCount(employer), 0, "0 active after pause");
+  }
+
+  function test_GetTotalEmployeeCount_IncludesInactive() public {
+    vm.prank(employer);
+    gainjar.deposit(700 * 1e6);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
+
+    assertEq(gainjar.getTotalEmployeeCount(employer), 1, "1 total");
+
+    vm.warp(block.timestamp + 1 days);
+
+    vm.prank(employer);
+    gainjar.pauseStream(employee);
+
+    assertEq(gainjar.getTotalEmployeeCount(employer), 1, "still 1 total (history)");
+    assertEq(gainjar.getActiveEmployeeCount(employer), 0, "but 0 active");
+  }
+
+  function test_GetActiveEmployeeCount_MultipleEmployees() public {
+    vm.prank(employer);
+    gainjar.deposit(2100 * 1e6);
+
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee2, 100 * 1e6, 1 days);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee3, 100 * 1e6, 1 days);
+
+    assertEq(gainjar.getActiveEmployeeCount(employer), 3, "3 active");
+    assertEq(gainjar.getTotalEmployeeCount(employer), 3, "3 total");
+
+    vm.warp(block.timestamp + 1 days);
+
+    // Pause one
+    vm.prank(employer);
+    gainjar.pauseStream(employee2);
+
+    assertEq(gainjar.getActiveEmployeeCount(employer), 2, "2 active after pause");
+    assertEq(gainjar.getTotalEmployeeCount(employer), 3, "still 3 total");
+  }
+
+  // ============== getActiveEmployees / getAllEmployees ==============
+
+  function test_GetActiveEmployees_ReturnsEmptyWhenNone() public view {
+    address[] memory active = gainjar.getActiveEmployees(employer);
+    assertEq(active.length, 0, "empty array");
+  }
+
+  function test_GetActiveEmployees_ReturnsSingleEmployee() public {
+    vm.prank(employer);
+    gainjar.deposit(700 * 1e6);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
+
+    address[] memory active = gainjar.getActiveEmployees(employer);
+    assertEq(active.length, 1, "1 employee");
+    assertEq(active[0], employee, "correct employee");
+  }
+
+  function test_GetActiveEmployees_ExcludesPausedStreams() public {
+    vm.prank(employer);
+    gainjar.deposit(1400 * 1e6);
+
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee2, 100 * 1e6, 1 days);
+
+    address[] memory activeBefore = gainjar.getActiveEmployees(employer);
+    assertEq(activeBefore.length, 2, "2 active before pause");
+
+    vm.warp(block.timestamp + 1 days);
+
+    vm.prank(employer);
+    gainjar.pauseStream(employee);
+
+    address[] memory activeAfter = gainjar.getActiveEmployees(employer);
+    assertEq(activeAfter.length, 1, "1 active after pause");
+    assertEq(activeAfter[0], employee2, "employee2 still active");
+  }
+
+  function test_GetAllEmployees_IncludesInactive() public {
+    vm.prank(employer);
+    gainjar.deposit(700 * 1e6);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
+
+    vm.warp(block.timestamp + 1 days);
+
+    vm.prank(employer);
+    gainjar.pauseStream(employee);
+
+    address[] memory all = gainjar.getAllEmployees(employer);
+    address[] memory active = gainjar.getActiveEmployees(employer);
+
+    assertEq(all.length, 1, "1 in history");
+    assertEq(active.length, 0, "0 active");
+    assertEq(all[0], employee, "employee in history");
+  }
+
+  function test_GetActiveEmployees_AfterStreamEnds_RemovesFromActive() public {
+    uint256 total = 100 * 1e6;
+    uint256 duration = 1 days;
+
+    vm.prank(employer);
+    gainjar.deposit((total / duration) * MIN_COVERAGE_DAYS);
+    vm.prank(employer);
+    gainjar.createFiniteStream(employee, total, duration);
+
+    assertEq(gainjar.getActiveEmployeeCount(employer), 1, "1 active initially");
+
+    // Warp past end time
+    vm.warp(block.timestamp + duration + 1);
+
+    // Withdraw to trigger stream end
+    vm.prank(employee);
+    gainjar.withdraw(employer);
+
+    assertEq(gainjar.getActiveEmployeeCount(employer), 0, "0 active after stream ends");
+    assertEq(gainjar.getTotalEmployeeCount(employer), 1, "still 1 in history");
+  }
+
+  // ============== isActiveEmployee ==============
+
+  function test_IsActiveEmployee_ReturnsFalseWhenNoStream() public view {
+    assertFalse(gainjar.isActiveEmployee(employer, employee), "no stream");
+  }
+
+  function test_IsActiveEmployee_ReturnsTrueWhenActive() public {
+    vm.prank(employer);
+    gainjar.deposit(700 * 1e6);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
+
+    assertTrue(gainjar.isActiveEmployee(employer, employee), "active");
+  }
+
+  function test_IsActiveEmployee_ReturnsFalseAfterPause() public {
+    vm.prank(employer);
+    gainjar.deposit(700 * 1e6);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
+
+    assertTrue(gainjar.isActiveEmployee(employer, employee), "active before pause");
+
+    vm.warp(block.timestamp + 1 days);
+
+    vm.prank(employer);
+    gainjar.pauseStream(employee);
+
+    assertFalse(gainjar.isActiveEmployee(employer, employee), "inactive after pause");
+  }
+
+  function test_IsActiveEmployee_ReturnsFalseAfterStreamEnds() public {
+    uint256 total = 100 * 1e6;
+    uint256 duration = 1 days;
+
+    vm.prank(employer);
+    gainjar.deposit((total / duration) * MIN_COVERAGE_DAYS);
+    vm.prank(employer);
+    gainjar.createFiniteStream(employee, total, duration);
+
+    assertTrue(gainjar.isActiveEmployee(employer, employee), "active before end");
+
+    vm.warp(block.timestamp + duration + 1);
+    vm.prank(employee);
+    gainjar.withdraw(employer);
+
+    assertFalse(gainjar.isActiveEmployee(employer, employee), "inactive after stream ends");
+  }
+
+  // ============== Edge Cases: Multiple Operations ==============
+
+  function test_ActiveEmployees_ComplexScenario() public {
+    vm.prank(employer);
+    gainjar.deposit(5000 * 1e6);
+
+    // Create 3 streams
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee2, 100 * 1e6, 1 days);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee3, 100 * 1e6, 1 days);
+
+    vm.warp(block.timestamp * 1 days);
+
+    assertEq(gainjar.getActiveEmployeeCount(employer), 3, "3 active");
+
+    // Pause one
+    vm.prank(employer);
+    gainjar.pauseStream(employee);
+
+    assertEq(gainjar.getActiveEmployeeCount(employer), 2, "2 active after pause");
+    assertTrue(gainjar.isActiveEmployee(employer, employee2), "employee2 still active");
+    assertTrue(gainjar.isActiveEmployee(employer, employee3), "employee3 still active");
+    assertFalse(gainjar.isActiveEmployee(employer, employee), "employee paused");
+
+    // Check active list doesn't contain paused employee
+    address[] memory active = gainjar.getActiveEmployees(employer);
+    assertEq(active.length, 2, "2 in active list");
+    assertTrue(active[0] == employee2 || active[0] == employee3, "active[0] is employee2 or employee3");
+    assertTrue(active[1] == employee2 || active[1] == employee3, "active[1] is employee2 or employee3");
+
+    // Total list still has all 3
+    address[] memory all = gainjar.getAllEmployees(employer);
+    assertEq(all.length, 3, "3 in total list");
+  }
+
+  // ============== getTotalFlowRate with Active List ==============
+
+  function test_GetTotalFlowRate_OnlyCountsActiveStreams() public {
+    vm.prank(employer);
+    gainjar.deposit(14000 * 1e6);
+
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
+    vm.prank(employer);
+    gainjar.createInfiniteStream(employee2, 200 * 1e6, 1 days);
+
+    uint256 expectedRate = (100 * 1e6) / ONE_DAY + (200 * 1e6) / ONE_DAY;
+    assertEq(gainjar.getTotalFlowRate(employer), expectedRate, "combined flow rate");
+
+    vm.warp(block.timestamp + 1 days);
+
+    // Pause one
+    vm.prank(employer);
+    gainjar.pauseStream(employee);
+
+    uint256 expectedRateAfter = (200 * 1e6) / ONE_DAY;
+    assertEq(gainjar.getTotalFlowRate(employer), expectedRateAfter, "flow rate after pause");
   }
 }

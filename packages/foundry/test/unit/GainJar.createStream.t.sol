@@ -174,7 +174,7 @@ contract GainJarCreateStreamTest is BaseTest {
 
   function test_UpdateInfiniteRate_Success() public {
     vm.prank(employer);
-    gainjar.deposit(1400 * 1e6);
+    gainjar.deposit(14000 * 1e6);
     vm.prank(employer);
     gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
     vm.warp(block.timestamp + 1 hours); // so _processWithdrawal has something to withdraw

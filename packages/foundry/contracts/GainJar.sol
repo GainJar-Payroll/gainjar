@@ -163,8 +163,14 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   // Employer => Employee[]
   mapping(address => address[]) private s_employeeList;
 
+  mapping(address => address[]) private s_activeEmployeeList;
+
   // Employer => Employee => Employee index on s_employeeList
   mapping(address => mapping(address => uint256)) private s_employeeIndex;
+
+  mapping(address => mapping(address => uint256)) private s_activeEmployeeIndex;
+
+  mapping(address => mapping(address => bool)) private s_isActiveEmployee;
 
   // Track last liquidation time per employer
   mapping(address => uint256) private s_lastLiquidationTime;
@@ -299,11 +305,28 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     if (!stream.isActive) revert GainJar__StreamNotActive();
     if (stream.streamType != StreamType.INFINITE) revert GainJar__OnlyInfiniteStream();
 
-    // Withdraw pending first
-    _processWithdrawal(msg.sender, _employee);
+    if (_newRatePeriod == 0) {
+      revert GainJar__PeriodCantBeZero();
+    }
 
-    // Update rate
-    stream.ratePerSecond = _newRateAmount / _newRatePeriod;
+    if (_newRateAmount < _newRatePeriod) {
+      revert GainJar__AmountTooSmall();
+    }
+
+    _processWithdrawal(_msgSender(), _employee);
+
+    uint256 newRatePerSecond = _newRateAmount / _newRatePeriod;
+
+    uint256 oldRatePerSecond = stream.ratePerSecond;
+    uint256 currentTotalFlowRate = getTotalFlowRate(_msgSender());
+    uint256 newTotalFlowRate = currentTotalFlowRate - oldRatePerSecond + newRatePerSecond;
+    uint256 minRequiredBalance = newTotalFlowRate * MIN_COVERAGE_DAYS_SECOND;
+
+    if (s_vaultBalances[_msgSender()] < minRequiredBalance) {
+      revert GainJar__InsufficientEmployerVault(_msgSender());
+    }
+
+    stream.ratePerSecond = newRatePerSecond;
   }
 
   /**
@@ -317,16 +340,27 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     // Withdraw accumulated first
     _processWithdrawal(_msgSender(), _employee);
 
-    // Calculate new total and recalculate rate
-    uint256 remainingTime = stream.endTime - block.timestamp;
+    uint256 remainingAmount = stream.totalAmount - stream.totalWithdrawn;
+    uint256 newTotalAmount = remainingAmount + _additionalAmount;
+    uint256 remainingTime = stream.endTime > block.timestamp ? stream.endTime - block.timestamp : 0;
     uint256 newTotalTime = remainingTime + _additionalSeconds;
-    uint256 newTotalAmount = stream.totalAmount + _additionalAmount;
 
-    stream.totalAmount = newTotalAmount;
+    uint256 newRatePerSecond = newTotalAmount / newTotalTime;
+    uint256 newFinalPayout = newTotalAmount % newTotalTime;
+
+    stream.totalAmount = stream.totalWithdrawn + newTotalAmount;
     stream.endTime = block.timestamp + newTotalTime;
-    stream.ratePerSecond = newTotalAmount / newTotalTime;
-    stream.startTime = block.timestamp; // Reset for clean calculation
+    stream.ratePerSecond = newRatePerSecond;
+    stream.finalPayout = newFinalPayout;
+    stream.startTime = block.timestamp;
     stream.lastWithdrawal = block.timestamp;
+
+    // Check vault balance for new flow rate
+    uint256 newFlowRate = getTotalFlowRate(_msgSender());
+    uint256 minRequiredBalance = newFlowRate * MIN_COVERAGE_DAYS_SECOND;
+    if (s_vaultBalances[_msgSender()] < minRequiredBalance) {
+      revert GainJar__InsufficientEmployerVault(_msgSender());
+    }
   }
 
   /**
@@ -336,10 +370,13 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     Stream storage stream = s_streams[_msgSender()][_employee];
     if (!stream.isActive) revert GainJar__StreamNotActive();
 
-    _processWithdrawal(msg.sender, _employee);
+    _processWithdrawal(_msgSender(), _employee);
 
     stream.isActive = false;
-    emit StreamPaused(msg.sender, _employee);
+
+    _removeFromActiveList(_msgSender(), _employee);
+
+    emit StreamPaused(_msgSender(), _employee);
   }
 
   /**
@@ -352,6 +389,9 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     Stream storage stream = s_streams[_employer][_msgSender()];
     if (_isStreamExpired(stream)) {
       stream.isActive = false;
+
+      _removeFromActiveList(_employer, _msgSender());
+
       emit StreamEnded(_employer, _msgSender());
     }
   }
@@ -361,23 +401,38 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     if (!stream.isActive) revert GainJar__StreamNotActive();
 
     uint256 maxWithdrawable = withdrawable(_employer, _msgSender());
+
+    bool isExpired = _isStreamExpired(stream);
+    if (isExpired && stream.streamType == StreamType.FINITE) {
+      maxWithdrawable += stream.finalPayout;
+    }
+
     if (_amount > maxWithdrawable) revert GainJar__AmountExceedsEarned();
 
     uint256 vaultBalance = s_vaultBalances[_employer];
     if (_amount > vaultBalance) revert GainJar__InsufficientEmployerVault(_employer);
 
-    // Update state
-    stream.lastWithdrawal = block.timestamp;
+    if (isExpired) {
+      stream.lastWithdrawal = stream.endTime;
+    } else {
+      stream.lastWithdrawal = block.timestamp;
+    }
+
     stream.totalWithdrawn += _amount;
     s_vaultBalances[_employer] -= _amount;
 
     (uint256 fee, uint256 netAmount) = _calculateFee(_amount);
 
-    // Transfer
     i_paymentToken.transfer(_msgSender(), netAmount);
     s_accumulatedFees += fee;
 
     emit Withdrawal(_msgSender(), _amount, fee);
+
+    if (isExpired && stream.totalWithdrawn >= stream.totalAmount) {
+      stream.isActive = false;
+      _removeFromActiveList(_employer, _msgSender());
+      emit StreamEnded(_employer, _msgSender());
+    }
   }
 
   /**
@@ -404,7 +459,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
       revert GainJar__LiquidationCooldownActive((lastLiquidation + LIQUIDATION_COOLDOWN) - block.timestamp);
     }
 
-    address[] memory employees = s_employeeList[_employer];
+    address[] memory employees = s_activeEmployeeList[_employer];
 
     // 3. First pass: hitung total earned (view-only, no state change)
     uint256 totalEmployeeEarnings = 0;
@@ -454,6 +509,8 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
         emit StreamPaused(_employer, employees[i]);
       }
     }
+
+    delete s_activeEmployeeList[_employer];
 
     // 7. Pay liquidator reward (no fee on reward)
     s_vaultBalances[_employer] -= reward;
@@ -684,12 +741,12 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
    * @return totalRate Sum of all the amount streamed per second
    */
   function getTotalFlowRate(address _employer) public view returns (uint256 totalRate) {
-    address[] memory employees = s_employeeList[_employer];
+    address[] memory employees = s_activeEmployeeList[_employer];
 
     for (uint256 i = 0; i < employees.length; i++) {
       Stream memory stream = s_streams[_employer][employees[i]];
 
-      if (stream.isActive && !_isStreamExpired(stream)) {
+      if (!_isStreamExpired(stream)) {
         totalRate += stream.ratePerSecond;
       }
     }
@@ -833,6 +890,10 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     s_employeeIndex[_msgSender()][_employee] = s_employeeList[_msgSender()].length;
     s_employeeList[_msgSender()].push(_employee);
 
+    s_activeEmployeeIndex[_msgSender()][_employee] = s_activeEmployeeList[_msgSender()].length;
+    s_activeEmployeeList[_msgSender()].push(_employee);
+    s_isActiveEmployee[_msgSender()][_employee] = true;
+
     emit StreamCreated(_msgSender(), _employee, ratePerSecond, block.timestamp, endTime, _amount, _type, finalPayout);
   }
 
@@ -862,5 +923,65 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     if (reward > LIQUIDATION_REWARD_CAP) {
       reward = LIQUIDATION_REWARD_CAP;
     }
+  }
+
+  /**
+   * @notice Remove employee from active list (keep in history)
+   * @param _employer Employer address
+   * @param _employee Employee to remove from active
+   */
+  function _removeFromActiveList(address _employer, address _employee) internal {
+    if (!s_isActiveEmployee[_employer][_employee]) return; // Already removed
+
+    uint256 index = s_activeEmployeeIndex[_employer][_employee];
+    address[] storage activeList = s_activeEmployeeList[_employer];
+    uint256 lastIndex = activeList.length - 1;
+
+    // Swap with last element
+    if (index != lastIndex) {
+      address lastEmployee = activeList[lastIndex];
+      activeList[index] = lastEmployee;
+      s_activeEmployeeIndex[_employer][lastEmployee] = index;
+    }
+
+    // Remove last element
+    activeList.pop();
+    delete s_activeEmployeeIndex[_employer][_employee];
+    s_isActiveEmployee[_employer][_employee] = false;
+  }
+
+  /**
+   * @notice Get active employees count (O(1))
+   */
+  function getActiveEmployeeCount(address _employer) external view returns (uint256) {
+    return s_activeEmployeeList[_employer].length;
+  }
+
+  /**
+   * @notice Get all employees count (O(1))
+   */
+  function getTotalEmployeeCount(address _employer) external view returns (uint256) {
+    return s_employeeList[_employer].length;
+  }
+
+  /**
+   * @notice Get active employees list (efficient)
+   */
+  function getActiveEmployees(address _employer) external view returns (address[] memory) {
+    return s_activeEmployeeList[_employer];
+  }
+
+  /**
+   * @notice Get all employees list (history)
+   */
+  function getAllEmployees(address _employer) external view returns (address[] memory) {
+    return s_employeeList[_employer];
+  }
+
+  /**
+   * @notice Check if employee is active (O(1))
+   */
+  function isActiveEmployee(address _employer, address _employee) external view returns (bool) {
+    return s_isActiveEmployee[_employer][_employee];
   }
 }
