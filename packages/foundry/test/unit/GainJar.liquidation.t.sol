@@ -14,14 +14,7 @@ contract GainJarLiquidationTest is BaseTest {
 
   function test_Liquidate_Success() public {
     _setupEmployerInEmergency();
-    (
-      bool eligible,
-      ,
-      uint256 totalEmployeeEarnings,
-      uint256 estimatedReward,
-      ,
-
-    ) = gainjar.getLiquidationPreview(employer);
+    (bool eligible,, uint256 totalEmployeeEarnings, uint256 estimatedReward,,) = gainjar.getLiquidationPreview(employer);
     assertTrue(eligible, "eligible");
     uint256 balanceBefore = mockToken.balanceOf(employee);
 
@@ -31,12 +24,16 @@ contract GainJarLiquidationTest is BaseTest {
     uint256 balanceAfter = mockToken.balanceOf(employee);
     uint256 received = balanceAfter - balanceBefore;
     assertGe(received, estimatedReward, "liquidator received at least estimated reward");
-    assertGe(received, totalEmployeeEarnings + estimatedReward - (totalEmployeeEarnings * gainjar.getFeeBasisPoints() / 10000), "employee payout + reward");
+    assertGe(
+      received,
+      totalEmployeeEarnings + estimatedReward - (totalEmployeeEarnings * gainjar.getFeeBasisPoints() / 10000),
+      "employee payout + reward"
+    );
   }
 
   function test_Liquidate_EmitsLiquidated() public {
     _setupEmployerInEmergency();
-    (, , uint256 totalEarnings, uint256 reward, , ) = gainjar.getLiquidationPreview(employer);
+    (,, uint256 totalEarnings, uint256 reward,,) = gainjar.getLiquidationPreview(employer);
 
     vm.expectEmit(true, true, true, true);
     emit GainJar.Liquidated(employee, employer, totalEarnings, reward, 1);
@@ -80,7 +77,7 @@ contract GainJarLiquidationTest is BaseTest {
     vm.prank(employee);
     gainjar.withdraw(employer);
     (uint256 balance,,,,,) = gainjar.getVaultHealth(employer);
-    (, , uint256 totalEarnings, uint256 reward, , ) = gainjar.getLiquidationPreview(employer);
+    (,, uint256 totalEarnings, uint256 reward,,) = gainjar.getLiquidationPreview(employer);
     uint256 totalRequired = totalEarnings + reward;
     assertLt(balance, totalRequired, "vault below totalRequired");
     assertGe(uint256(gainjar.getVaultStatus(employer)), uint256(GainJar.VaultStatus.CRITICAL), "CRITICAL or EMERGENCY");
