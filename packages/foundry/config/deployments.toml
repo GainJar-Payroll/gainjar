@@ -12,7 +12,7 @@ endpoint_url = "${ARB_SEPOLIA_ENDPOINT_URL}"
 
 [anvil.address]
 usdc = "0x0000000000000000000000000000000000000000"
-gainjar = "0xA15BB66138824a1c7167f5E85b957d04Dd34E468"
+gainjar = "0xe1DA8919f262Ee86f9BE05059C9280142CF23f48"
 
 [anvil.bool]
 with_usdc_mock = true

@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     MockERC20: {
-      address: "0x700b6a60ce7eaaea56f065753d8dcb9653dbad35",
+      address: "0xe1aa25618fa0c7a1cfdab5d6b456af611873b629",
       abi: [
         {
           type: "constructor",
@@ -353,10 +353,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 2,
+      deployedOnBlock: 5,
     },
     GainJar: {
-      address: "0xa15bb66138824a1c7167f5e85b957d04dd34e468",
+      address: "0xe1da8919f262ee86f9be05059c9280142cf23f48",
       abi: [
         {
           type: "constructor",
@@ -545,7 +545,7 @@ const deployedContracts = {
         },
         {
           type: "function",
-          name: "getLiquidationInfo",
+          name: "getLiquidationPreview",
           inputs: [
             {
               name: "_employer",
@@ -560,17 +560,27 @@ const deployedContracts = {
               internalType: "bool",
             },
             {
-              name: "cooldownLeft",
+              name: "status",
+              type: "uint8",
+              internalType: "enum GainJar.VaultStatus",
+            },
+            {
+              name: "totalEmployeeEarnings",
               type: "uint256",
               internalType: "uint256",
             },
             {
-              name: "isCurrentlyLiquidated",
-              type: "bool",
-              internalType: "bool",
+              name: "estimatedReward",
+              type: "uint256",
+              internalType: "uint256",
             },
             {
-              name: "reward",
+              name: "vaultAfterLiquidation",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "cooldownRemaining",
               type: "uint256",
               internalType: "uint256",
             },
@@ -834,25 +844,6 @@ const deployedContracts = {
         },
         {
           type: "function",
-          name: "isLiquidated",
-          inputs: [
-            {
-              name: "_employer",
-              type: "address",
-              internalType: "address",
-            },
-          ],
-          outputs: [
-            {
-              name: "",
-              type: "bool",
-              internalType: "bool",
-            },
-          ],
-          stateMutability: "view",
-        },
-        {
-          type: "function",
           name: "liquidate",
           inputs: [
             {
@@ -893,13 +884,6 @@ const deployedContracts = {
         {
           type: "function",
           name: "renounceOwnership",
-          inputs: [],
-          outputs: [],
-          stateMutability: "nonpayable",
-        },
-        {
-          type: "function",
-          name: "restoreAfterLiquidation",
           inputs: [],
           outputs: [],
           stateMutability: "nonpayable",
@@ -1082,13 +1066,19 @@ const deployedContracts = {
               internalType: "address",
             },
             {
+              name: "_totalPaidToEmployees",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+            {
               name: "_reward",
               type: "uint256",
               indexed: false,
               internalType: "uint256",
             },
             {
-              name: "_streamspaused",
+              name: "_streamsPaused",
               type: "uint256",
               indexed: false,
               internalType: "uint256",
@@ -1282,6 +1272,22 @@ const deployedContracts = {
         },
         {
           type: "error",
+          name: "GainJar__InsufficientVaultForLiquidation",
+          inputs: [
+            {
+              name: "_vaultBalance",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "_required",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+        },
+        {
+          type: "error",
           name: "GainJar__InsufficientVaultForReward",
           inputs: [],
         },
@@ -1329,11 +1335,6 @@ const deployedContracts = {
         {
           type: "error",
           name: "GainJar__SalaryCantBeZero",
-          inputs: [],
-        },
-        {
-          type: "error",
-          name: "GainJar__StreamAlreadyPaused",
           inputs: [],
         },
         {
@@ -1386,7 +1387,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 3,
+      deployedOnBlock: 6,
     },
   },
 } as const;

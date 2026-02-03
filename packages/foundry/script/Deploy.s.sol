@@ -17,9 +17,5 @@ contract DeployScript is ScaffoldETHDeploy {
 
     DeployGainJarContract deployYourContract = new DeployGainJarContract();
     deployYourContract.run();
-
-    // Deploy another contract
-    // DeployMyContract myContract = new DeployMyContract();
-    // myContract.run();
   }
 }
