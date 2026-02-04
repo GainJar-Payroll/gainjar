@@ -35,6 +35,7 @@ localhost = "http://127.0.0.1:8545"
 [etherscan]
 polygonMumbai = { key = "${ETHERSCAN_API_KEY}" }
 sepolia = { key = "${ETHERSCAN_API_KEY}" }
+arbitrumSepolia = { key = "${ETHERSCAN_API_KEY}" }
 
 
 [fmt]
@@ -46,4 +47,3 @@ int_types = "long"
 
 
 # See more config options https://book.getfoundry.sh/reference/config/overview
-

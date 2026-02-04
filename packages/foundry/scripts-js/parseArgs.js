@@ -12,7 +12,7 @@ config();
 // Get all arguments after the script name
 const args = process.argv.slice(2);
 let fileName = "Deploy.s.sol";
-let network = "localhost";
+let network = "arbitrumSepolia";
 let keystoreArg = null;
 
 // Show help message if --help is provided

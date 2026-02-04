@@ -54,14 +54,13 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
 
   error GainJar__InvalidAddress();
 
-  error GainJar__SalaryCantBeZero();
-
   error GainJar__PeriodCantBeZero();
 
   error GainJar__StreamExists();
   error GainJar__StreamNotActive();
-  error GainJar__AmountExceedsEarned();
+  error GainJar__StreamAlreadyActive();
 
+  error GainJar__AmountExceedsEarned();
   error GainJar__AmountTooSmall();
 
   error GainJar__OnlyInfiniteStream();
@@ -72,10 +71,9 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   error GainJar__InsufficientEmployerVault(address _employer);
 
   error GainJar__VaultNotEligibleForLiquidation(VaultStatus _currentStatus);
-  error GainJar__LiquidationCooldownActive(uint256 _timeRemaining);
   error GainJar__InsufficientVaultForLiquidation(uint256 _vaultBalance, uint256 _required);
-  error GainJar__InsufficientVaultForReward();
-  error GainJar__AlreadyLiquidated();
+
+  error GainJar__LiquidationCooldownActive(uint256 _timeRemaining);
 
   error GainJar__FeeExceedsMax(uint256 _requested, uint256 _max);
   error GainJar__NoFeesToClaim();
@@ -165,8 +163,8 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
 
   mapping(address => address[]) private s_activeEmployeeList;
 
-  // Employer => Employee => Employee index on s_employeeList
-  mapping(address => mapping(address => uint256)) private s_employeeIndex;
+  // Employer => Employee => Has Exist stream on s_employeeList
+  mapping(address => mapping(address => bool)) private s_employeeExist;
 
   mapping(address => mapping(address => uint256)) private s_activeEmployeeIndex;
 
@@ -522,6 +520,22 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     emit Liquidated(_msgSender(), _employer, totalEmployeeEarnings, reward, streamsPaused);
   }
 
+  /**
+   * @notice Reactivate the stream
+   */
+  function activateStream(address _employee) external {
+    Stream storage stream = s_streams[_msgSender()][_employee];
+    if (stream.isActive) {
+      revert GainJar__StreamAlreadyActive();
+    }
+
+    stream.isActive = true;
+
+    s_activeEmployeeIndex[_msgSender()][_employee] = s_activeEmployeeList[_msgSender()].length;
+    s_activeEmployeeList[_msgSender()].push(_employee);
+    s_isActiveEmployee[_msgSender()][_employee] = true;
+  }
+
   // =====================
   // View functions
   // =====================
@@ -860,7 +874,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
       revert GainJar__AmountTooSmall();
     }
 
-    if (s_streams[_msgSender()][_employee].isActive) {
+    if (s_employeeExist[_msgSender()][_employee] || s_streams[_msgSender()][_employee].isActive) {
       revert GainJar__StreamExists();
     }
 
@@ -887,7 +901,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
       isActive: true
     });
 
-    s_employeeIndex[_msgSender()][_employee] = s_employeeList[_msgSender()].length;
+    s_employeeExist[_msgSender()][_employee] = true;
     s_employeeList[_msgSender()].push(_employee);
 
     s_activeEmployeeIndex[_msgSender()][_employee] = s_activeEmployeeList[_msgSender()].length;
