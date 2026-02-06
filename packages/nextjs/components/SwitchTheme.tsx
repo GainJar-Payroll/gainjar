@@ -18,7 +18,7 @@ export const SwitchTheme = ({ className }: { className?: string }) => {
     setTheme("dark");
   };
 
-  useEffect(() => {
+  useEffect(() => {z
     setMounted(true);
   }, []);
 

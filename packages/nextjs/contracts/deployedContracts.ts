@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     MockERC20: {
-      address: "0xe1aa25618fa0c7a1cfdab5d6b456af611873b629",
+      address: "0x700b6a60ce7eaaea56f065753d8dcb9653dbad35",
       abi: [
         {
           type: "constructor",
@@ -353,10 +353,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 5,
+      deployedOnBlock: 7,
     },
     GainJar: {
-      address: "0xe1da8919f262ee86f9be05059c9280142cf23f48",
+      address: "0xa15bb66138824a1c7167f5e85b957d04dd34e468",
       abi: [
         {
           type: "constructor",
@@ -367,6 +367,19 @@ const deployedContracts = {
               internalType: "address",
             },
           ],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "activateStream",
+          inputs: [
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [],
           stateMutability: "nonpayable",
         },
         {
@@ -526,6 +539,63 @@ const deployedContracts = {
               name: "",
               type: "uint256",
               internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getActiveEmployeeCount",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getActiveEmployees",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "address[]",
+              internalType: "address[]",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getAllEmployees",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "address[]",
+              internalType: "address[]",
             },
           ],
           stateMutability: "view",
@@ -724,6 +794,25 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "getTotalEmployeeCount",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "getTotalFlowRate",
           inputs: [
             {
@@ -829,6 +918,30 @@ const deployedContracts = {
           inputs: [
             {
               name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "bool",
+              internalType: "bool",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "isActiveEmployee",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_employee",
               type: "address",
               internalType: "address",
             },
@@ -1225,8 +1338,1491 @@ const deployedContracts = {
         },
         {
           type: "error",
-          name: "GainJar__AlreadyLiquidated",
+          name: "GainJar__AmountExceedsEarned",
           inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__AmountTooSmall",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__DepositCantBeZero",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__FeeExceedsMax",
+          inputs: [
+            {
+              name: "_requested",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "_max",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "GainJar__InsufficientEmployerVault",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "GainJar__InsufficientVaultForLiquidation",
+          inputs: [
+            {
+              name: "_vaultBalance",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "_required",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "GainJar__InvalidAddress",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__LiquidationCooldownActive",
+          inputs: [
+            {
+              name: "_timeRemaining",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "GainJar__NoFeesToClaim",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__NothingToWithdraw",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__OnlyFiniteStream",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__OnlyInfiniteStream",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__PeriodCantBeZero",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__StreamAlreadyActive",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__StreamExists",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__StreamNotActive",
+          inputs: [],
+        },
+        {
+          type: "error",
+          name: "GainJar__VaultNotEligibleForLiquidation",
+          inputs: [
+            {
+              name: "_currentStatus",
+              type: "uint8",
+              internalType: "enum GainJar.VaultStatus",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "OwnableInvalidOwner",
+          inputs: [
+            {
+              name: "owner",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "OwnableUnauthorizedAccount",
+          inputs: [
+            {
+              name: "account",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "ReentrancyGuardReentrantCall",
+          inputs: [],
+        },
+      ],
+      inheritedFunctions: {},
+      deployedOnBlock: 7,
+    },
+  },
+  421614: {
+    MockERC20: {
+      address: "0x6a6bd21bbc39f88e8d0284ed31424a9b61727b1e",
+      abi: [
+        {
+          type: "constructor",
+          inputs: [
+            {
+              name: "name",
+              type: "string",
+              internalType: "string",
+            },
+            {
+              name: "symbol",
+              type: "string",
+              internalType: "string",
+            },
+          ],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "allowance",
+          inputs: [
+            {
+              name: "owner",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "spender",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "approve",
+          inputs: [
+            {
+              name: "spender",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "value",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "bool",
+              internalType: "bool",
+            },
+          ],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "balanceOf",
+          inputs: [
+            {
+              name: "account",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "decimals",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint8",
+              internalType: "uint8",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "mint",
+          inputs: [
+            {
+              name: "to",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "amount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "name",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "string",
+              internalType: "string",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "symbol",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "string",
+              internalType: "string",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "totalSupply",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "transfer",
+          inputs: [
+            {
+              name: "to",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "value",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "bool",
+              internalType: "bool",
+            },
+          ],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "transferFrom",
+          inputs: [
+            {
+              name: "from",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "to",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "value",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "bool",
+              internalType: "bool",
+            },
+          ],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "event",
+          name: "Approval",
+          inputs: [
+            {
+              name: "owner",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "spender",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "value",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "Transfer",
+          inputs: [
+            {
+              name: "from",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "to",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "value",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "error",
+          name: "ERC20InsufficientAllowance",
+          inputs: [
+            {
+              name: "spender",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "allowance",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "needed",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "ERC20InsufficientBalance",
+          inputs: [
+            {
+              name: "sender",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "balance",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "needed",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "ERC20InvalidApprover",
+          inputs: [
+            {
+              name: "approver",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "ERC20InvalidReceiver",
+          inputs: [
+            {
+              name: "receiver",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "ERC20InvalidSender",
+          inputs: [
+            {
+              name: "sender",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+        },
+        {
+          type: "error",
+          name: "ERC20InvalidSpender",
+          inputs: [
+            {
+              name: "spender",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+        },
+      ],
+      inheritedFunctions: {},
+      deployedOnBlock: 239687204,
+    },
+    GainJar: {
+      address: "0x604574af6e6151475697512c6f8c947e0d936865",
+      abi: [
+        {
+          type: "constructor",
+          inputs: [
+            {
+              name: "_paymentTokenAddress",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "activateStream",
+          inputs: [
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "claimFees",
+          inputs: [],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "createFiniteStream",
+          inputs: [
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_amount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "_durationInSeconds",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "createFiniteStreamDays",
+          inputs: [
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_totalAmount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "_durationInDays",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "createHourlyStream",
+          inputs: [
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_hourlyRate",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "createInfiniteStream",
+          inputs: [
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_amount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "_period",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "createMonthlyStream",
+          inputs: [
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_monthlyRate",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "deposit",
+          inputs: [
+            {
+              name: "_amount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "extendFiniteStream",
+          inputs: [
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_additionalAmount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "_additionalSeconds",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "getAccumulatedFees",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getActiveEmployeeCount",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getActiveEmployees",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "address[]",
+              internalType: "address[]",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getAllEmployees",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "address[]",
+              internalType: "address[]",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getFeeBasisPoints",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getLiquidationPreview",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "eligible",
+              type: "bool",
+              internalType: "bool",
+            },
+            {
+              name: "status",
+              type: "uint8",
+              internalType: "enum GainJar.VaultStatus",
+            },
+            {
+              name: "totalEmployeeEarnings",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "estimatedReward",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "vaultAfterLiquidation",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "cooldownRemaining",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getMinCoverageDaysSecond",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "pure",
+        },
+        {
+          type: "function",
+          name: "getMinRequiredVaultBalance",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getSafeWithdrawableAmount",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "totalEarned",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "safeAmount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "isFullySafe",
+              type: "bool",
+              internalType: "bool",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getStreamInfo",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "ratePerSecond",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "startTime",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "endTime",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "totalAmount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "streamType",
+              type: "uint8",
+              internalType: "enum GainJar.StreamType",
+            },
+            {
+              name: "totalEarned",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "totalWithdrawn",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "withdrawableNow",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "isActive",
+              type: "bool",
+              internalType: "bool",
+            },
+            {
+              name: "isExpired",
+              type: "bool",
+              internalType: "bool",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getTotalEmployeeCount",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getTotalFlowRate",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "totalRate",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getVaultDepletionTime",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "secondsUntilEmpty",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getVaultHealth",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "balance",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "flowRate",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "daysRemaining",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "status",
+              type: "uint8",
+              internalType: "enum GainJar.VaultStatus",
+            },
+            {
+              name: "canCreateNewStream",
+              type: "bool",
+              internalType: "bool",
+            },
+            {
+              name: "maxAdditionalFlowRate",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getVaultStatus",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint8",
+              internalType: "enum GainJar.VaultStatus",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "hasMinimumCoverage",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "bool",
+              internalType: "bool",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "isActiveEmployee",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "bool",
+              internalType: "bool",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "liquidate",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "owner",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "pauseStream",
+          inputs: [
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "renounceOwnership",
+          inputs: [],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "transferOwnership",
+          inputs: [
+            {
+              name: "newOwner",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "updateFee",
+          inputs: [
+            {
+              name: "_newFeeBasisPoints",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "updateInfiniteRate",
+          inputs: [
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_newRateAmount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
+              name: "_newRatePeriod",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "withdraw",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "withdrawPartial",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_amount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "withdrawable",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+            {
+              name: "_employee",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "earned",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "event",
+          name: "FeeClaimed",
+          inputs: [
+            {
+              name: "_owner",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "_amount",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "FeeUpdated",
+          inputs: [
+            {
+              name: "_oldFee",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+            {
+              name: "_newFee",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "FundDeposited",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "_amount",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "Liquidated",
+          inputs: [
+            {
+              name: "_liquidator",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "_employer",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "_totalPaidToEmployees",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+            {
+              name: "_reward",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+            {
+              name: "_streamsPaused",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "OwnershipTransferred",
+          inputs: [
+            {
+              name: "previousOwner",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "newOwner",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "StreamCreated",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "_employee",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "_ratePerSecond",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+            {
+              name: "_startTime",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+            {
+              name: "_endTime",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+            {
+              name: "_totalAmount",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+            {
+              name: "_type",
+              type: "uint8",
+              indexed: false,
+              internalType: "enum GainJar.StreamType",
+            },
+            {
+              name: "_finalPayout",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "StreamEnded",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "_employee",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "StreamPaused",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "_employee",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+          ],
+          anonymous: false,
+        },
+        {
+          type: "event",
+          name: "Withdrawal",
+          inputs: [
+            {
+              name: "_employee",
+              type: "address",
+              indexed: true,
+              internalType: "address",
+            },
+            {
+              name: "_amount",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+            {
+              name: "_fee",
+              type: "uint256",
+              indexed: false,
+              internalType: "uint256",
+            },
+          ],
+          anonymous: false,
         },
         {
           type: "error",
@@ -1288,11 +2884,6 @@ const deployedContracts = {
         },
         {
           type: "error",
-          name: "GainJar__InsufficientVaultForReward",
-          inputs: [],
-        },
-        {
-          type: "error",
           name: "GainJar__InvalidAddress",
           inputs: [],
         },
@@ -1334,7 +2925,7 @@ const deployedContracts = {
         },
         {
           type: "error",
-          name: "GainJar__SalaryCantBeZero",
+          name: "GainJar__StreamAlreadyActive",
           inputs: [],
         },
         {
@@ -1387,7 +2978,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 6,
+      deployedOnBlock: 239687212,
     },
   },
 } as const;
