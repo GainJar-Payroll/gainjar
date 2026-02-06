@@ -261,6 +261,25 @@ contract GainJarCreateStreamTest is BaseTest {
     assertFalse(isActive, "paused");
   }
 
+  function test_PauseStream_ThenReactivate_Sucess() public {
+    vm.startPrank(employer);
+    gainjar.deposit(700e6);
+    gainjar.createInfiniteStream(employee, 100e6, 1 days);
+
+    vm.warp(block.timestamp + 1 days);
+
+    gainjar.pauseStream(employee);
+
+    (,,,,,,,, bool isActive,) = gainjar.getStreamInfo(employer, employee);
+    assertFalse(isActive, "paused");
+
+    gainjar.activateStream(employee);
+
+    (,,,,,,,, bool isActiveAfter,) = gainjar.getStreamInfo(employer, employee);
+    assertTrue(isActiveAfter, "active");
+    vm.stopPrank();
+  }
+
   function test_RevertWhen_PauseStream_StreamNotActive() public {
     vm.prank(employer);
     vm.expectRevert(GainJar.GainJar__StreamNotActive.selector);
