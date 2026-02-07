@@ -1,5 +1,3 @@
-import { ScaffoldEthAppWithProviders } from "~~/components/ScaffoldEthAppWithProviders";
-import { ThemeProvider } from "~~/components/ThemeProvider";
 import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
 
 export const metadata = getMetadata({
@@ -8,11 +6,7 @@ export const metadata = getMetadata({
 });
 
 const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
-  return (
-    <ThemeProvider enableSystem>
-      <ScaffoldEthAppWithProviders>{children}</ScaffoldEthAppWithProviders>
-    </ThemeProvider>
-  );
+  return children;
 };
 
 export default ScaffoldEthApp;

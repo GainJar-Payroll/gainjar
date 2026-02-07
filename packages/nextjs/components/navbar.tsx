@@ -3,7 +3,7 @@ import { RainbowKitConnectButton } from "./rainbow-kit-connect-button";
 
 export default function Navbar() {
   return (
-    <nav className="p-4 flex justify-between w-full mx-auto items-center sticky top-0 backdrop-blur-sm bg-background/10 z-[1]">
+    <nav className="p-4 flex justify-between max-w-7xl mx-auto items-center sticky top-0 backdrop-blur-sm bg-background/10 z-[1]">
       <Link href="/" className="font-heading font-bold">
         Gainjar
       </Link>
@@ -11,7 +11,7 @@ export default function Navbar() {
         <Link href={"/dashboard"} className="hover:underline">
           Dashboard
         </Link>
-      <RainbowKitConnectButton />
+        <RainbowKitConnectButton />
       </div>
     </nav>
   );
