@@ -103,7 +103,7 @@ const deployedContracts = {
               internalType: "uint8",
             },
           ],
-          stateMutability: "view",
+          stateMutability: "pure",
         },
         {
           type: "function",
@@ -591,6 +591,19 @@ const deployedContracts = {
               internalType: "address",
             },
           ],
+          outputs: [
+            {
+              name: "",
+              type: "address[]",
+              internalType: "address[]",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getEmployerList",
+          inputs: [],
           outputs: [
             {
               name: "",
@@ -1591,7 +1604,7 @@ const deployedContracts = {
               internalType: "uint8",
             },
           ],
-          stateMutability: "view",
+          stateMutability: "pure",
         },
         {
           type: "function",
@@ -1844,7 +1857,7 @@ const deployedContracts = {
       deployedOnBlock: 239687204,
     },
     GainJar: {
-      address: "0x604574af6e6151475697512c6f8c947e0d936865",
+      address: "0xa7257707cf92df0ee5c644ffa6b44d26c2047fd1",
       abi: [
         {
           type: "constructor",
@@ -2079,6 +2092,19 @@ const deployedContracts = {
               internalType: "address",
             },
           ],
+          outputs: [
+            {
+              name: "",
+              type: "address[]",
+              internalType: "address[]",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getEmployerList",
+          inputs: [],
           outputs: [
             {
               name: "",
@@ -2978,7 +3004,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 239687212,
+      deployedOnBlock: 240833805,
     },
   },
 } as const;

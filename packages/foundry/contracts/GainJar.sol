@@ -171,6 +171,8 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   // Track last liquidation time per employer
   mapping(address => uint256) private s_lastLiquidationTime;
 
+  address[] private s_employerList;
+
   // USDC as for payment token
   IERC20 private immutable i_paymentToken;
 
@@ -227,6 +229,8 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     if (_amount == 0) {
       revert GainJar__DepositCantBeZero();
     }
+
+    s_employerList.push(_msgSender());
 
     i_paymentToken.transferFrom(_msgSender(), address(this), _amount);
 
@@ -537,6 +541,10 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   // =====================
   // View functions
   // =====================
+
+  function getEmployerList() external view returns (address[] memory) {
+    return s_employerList;
+  }
 
   function getFeeBasisPoints() external view returns (uint256) {
     return s_feeBasisPoints;
