@@ -1,5 +1,3 @@
-/* @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=IBM+Plex+Serif:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"); */
-
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -12,123 +10,6 @@
   --font-heading: var(--font-ibm-serif), serif;
   --font-mono: var(--font-ibm-mono), monospace;
 }
-/* 
-@plugin "daisyui" {
-  themes:
-    light,
-    dark --prefersdark;
-}
-
-@plugin "daisyui/theme" {
-  name: "light";
-
-  --color-primary: #93bbfb;
-  --color-primary-content: #212638;
-  --color-secondary: #dae8ff;
-  --color-secondary-content: #212638;
-  --color-accent: #93bbfb;
-  --color-accent-content: #212638;
-  --color-neutral: #212638;
-  --color-neutral-content: #ffffff;
-  --color-base-100: #ffffff;
-  --color-base-200: #f4f8ff;
-  --color-base-300: #dae8ff;
-  --color-base-content: #212638;
-  --color-info: #93bbfb;
-  --color-success: #34eeb6;
-  --color-warning: #ffcf72;
-  --color-error: #ff8863;
-
-  --radius-field: 9999rem;
-  --radius-box: 1rem;
-  --tt-tailw: 6px;
-}
-
-@plugin "daisyui/theme" {
-  name: "dark";
-
-  --color-primary: #212638;
-  --color-primary-content: #f9fbff;
-  --color-secondary: #323f61;
-  --color-secondary-content: #f9fbff;
-  --color-accent: #4969a6;
-  --color-accent-content: #f9fbff;
-  --color-neutral: #f9fbff;
-  --color-neutral-content: #385183;
-  --color-base-100: #385183;
-  --color-base-200: #2a3655;
-  --color-base-300: #212638;
-  --color-base-content: #f9fbff;
-  --color-info: #385183;
-  --color-success: #34eeb6;
-  --color-warning: #ffcf72;
-  --color-error: #ff8863;
-
-  --radius-field: 9999rem;
-  --radius-box: 1rem;
-
-  --tt-tailw: 6px;
-  --tt-bg: var(--color-primary);
-} */
-
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
-/* @layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
-  }
-
-  p {
-    margin: 1rem 0;
-  }
-
-  body {
-    min-height: 100vh;
-  }
-
-  h1,
-  h2,
-  h3,
-  h4 {
-    margin-bottom: 0.5rem;
-    line-height: 1;
-  }
-}
-
-:root,
-[data-theme] {
-  background: var(--color-base-200);
-}
-
-.btn {
-  @apply shadow-md;
-}
-
-.btn.btn-ghost {
-  @apply shadow-none;
-}
-
-.link {
-  text-underline-offset: 2px;
-}
-
-.link:hover {
-  opacity: 80%;
-} */
-
-/*
-  ---break---
-*/
 
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
@@ -170,89 +51,127 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 }
-
-/*
-  ---break---
-*/
-
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.957 0.037 77.45);
-  --foreground: oklch(0.127 0.009 0);
-  --card: oklch(0.957 0.037 77.45);
-  --card-foreground: oklch(0.127 0.009 0);
-  --popover: oklch(0.957 0.037 77.45);
-  --popover-foreground: oklch(0.127 0.009 0);
-  --primary: oklch(0.127 0.009 0);
-  --primary-foreground: oklch(0.957 0.037 77.45);
-  --secondary: oklch(0.943 0.032 75.65);
-  --secondary-foreground: oklch(0.127 0.009 0);
-  --muted: oklch(0.943 0.032 75.65);
-  --muted-foreground: oklch(0.57 0.022 135);
-  --accent: oklch(0.943 0.032 75.65);
-  --accent-foreground: oklch(0.127 0.009 0);
-  --destructive: oklch(0.635 0.183 27.33);
-  --destructive-foreground: oklch(0.957 0.037 77.45);
-  --border: oklch(0.953 0.034 77.15);
-  --input: oklch(0.953 0.034 77.15);
-  --ring: oklch(0.127 0.009 0);
-  --chart-1: oklch(0.542 0.163 29.23);
-  --chart-2: oklch(0.538 0.109 180.59);
-  --chart-3: oklch(0.487 0.046 276.12);
-  --chart-4: oklch(0.659 0.159 86.78);
-  --chart-5: oklch(0.665 0.157 62.53);
-  --sidebar-background: oklch(0.957 0.037 77.45);
-  --sidebar-foreground: oklch(0.563 0.024 245.04);
-  --sidebar-primary: oklch(0.175 0.01 276.2);
-  --sidebar-primary-foreground: oklch(0.957 0.037 77.45);
-  --sidebar-accent: oklch(0.943 0.032 75.65);
-  --sidebar-accent-foreground: oklch(0.175 0.01 276.2);
-  --sidebar-border: oklch(0.953 0.034 77.15);
-  --sidebar-ring: oklch(0.703 0.151 15.06);
-}
 
-/*
-  ---break---
-*/
+  /* Base beige: oklch(0.90 0.025 75) */
+
+  /* Backgrounds - makin terang, makin pure */
+  --background: oklch(0.98 0.01 75); /* Base + 0.08L, -0.015C */
+  --foreground: oklch(0.15 0.005 75); /* Kontras tinggi */
+
+  /* Cards - lebih terang dari background */
+  --card: oklch(1 0.005 75); /* Base + 0.10L, -0.020C */
+  --card-foreground: oklch(0.18 0.008 75);
+
+  /* Popover - paling terang */
+  --popover: oklch(1 0.003 75); /* Hampir putih */
+  --popover-foreground: oklch(0.15 0.005 75);
+
+  /* Primary - gelap dari base, chroma naik */
+  --primary: oklch(0.35 0.045 75); /* Base - 0.55L, +0.020C */
+  --primary-foreground: oklch(0.98 0.01 75);
+
+  /* Secondary - sedikit lebih gelap dari base */
+  --secondary: oklch(0.94 0.03 75); /* Base + 0.04L, +0.005C */
+  --secondary-foreground: oklch(0.25 0.02 75);
+
+  /* Muted - desaturasi untuk recede */
+  --muted: oklch(0.94 0.02 75); /* Base + 0.04L, -0.005C */
+  --muted-foreground: oklch(0.5 0.015 75);
+
+  /* Accent - lebih gelap sedikit, chroma naik */
+  --accent: oklch(0.88 0.04 75); /* Base - 0.02L, +0.015C */
+  --accent-foreground: oklch(0.2 0.015 75);
+
+  /* Destructive - keluar dari base hue */
+  --destructive: oklch(0.55 0.22 27); /* Merah, independent */
+  --destructive-foreground: oklch(0.98 0.01 75);
+
+  /* Borders - subtle dari base */
+  --border: oklch(0.93 0.015 75); /* Base + 0.03L, -0.010C */
+  --input: oklch(0.94 0.02 75);
+
+  /* Ring - ikut primary */
+  --ring: oklch(0.38 0.048 75);
+
+  /* Charts - variasi hue, lightness konsisten */
+  --chart-1: oklch(0.6 0.135 40); /* Orange */
+  --chart-2: oklch(0.62 0.125 180); /* Cyan */
+  --chart-3: oklch(0.55 0.11 280); /* Purple */
+  --chart-4: oklch(0.68 0.145 90); /* Yellow-green */
+  --chart-5: oklch(0.65 0.13 340); /* Pink */
+
+  /* Sidebar - integrate dengan base */
+  --sidebar-background: oklch(0.96 0.015 75);
+  --sidebar-foreground: oklch(0.35 0.025 75);
+  --sidebar-primary: oklch(0.32 0.042 75);
+  --sidebar-primary-foreground: oklch(0.98 0.01 75);
+  --sidebar-accent: oklch(0.92 0.025 75);
+  --sidebar-accent-foreground: oklch(0.25 0.02 75);
+  --sidebar-border: oklch(0.9 0.018 75);
+  --sidebar-ring: oklch(0.4 0.05 75);
+}
 
 .dark {
-  --background: oklch(0.24 0.018 70.72);
-  --foreground: oklch(0.847 0.029 68.45);
-  --card: oklch(0.265 0.02 70.72);
-  --card-foreground: oklch(0.847 0.029 68.45);
-  --popover: oklch(0.265 0.02 70.72);
-  --popover-foreground: oklch(0.847 0.029 68.45);
-  --primary: oklch(0.741 0.053 77.38);
-  --primary-foreground: oklch(0.24 0.018 70.72);
-  --secondary: oklch(0.354 0.023 71.34);
-  --secondary-foreground: oklch(0.847 0.029 68.45);
-  --muted: oklch(0.354 0.023 71.34);
-  --muted-foreground: oklch(0.582 0.02 66.85);
-  --accent: oklch(0.354 0.023 71.34);
-  --accent-foreground: oklch(0.847 0.029 68.45);
-  --destructive: oklch(0.635 0.183 27.33);
-  --destructive-foreground: oklch(0.847 0.029 68.45);
-  --border: oklch(0.354 0.023 71.34);
-  --input: oklch(0.354 0.023 71.34);
-  --ring: oklch(0.732 0.042 76.51);
-  --chart-1: oklch(0.533 0.159 255.25);
-  --chart-2: oklch(0.541 0.121 195.72);
-  --chart-3: oklch(0.621 0.161 62.18);
-  --chart-4: oklch(0.679 0.162 288.19);
-  --chart-5: oklch(0.672 0.165 332.59);
-  --sidebar-background: oklch(0.265 0.02 70.72);
-  --sidebar-foreground: oklch(0.847 0.029 68.45);
-  --sidebar-primary: oklch(0.741 0.053 77.38);
-  --sidebar-primary-foreground: oklch(0.24 0.018 70.72);
-  --sidebar-accent: oklch(0.354 0.023 71.34);
-  --sidebar-accent-foreground: oklch(0.847 0.029 68.45);
-  --sidebar-border: oklch(0.354 0.023 71.34);
-  --sidebar-ring: oklch(0.732 0.042 76.51);
-}
+  /* Base beige transformed: oklch(0.90 0.025 75) */
 
-/*
-  ---break---
-*/
+  /* Background - darkest, slight hue shift */
+  --background: oklch(0.2 0.015 70); /* Base - 0.70L, -0.010C, -5H */
+  --foreground: oklch(0.92 0.015 75);
+
+  /* Card - sedikit lebih terang */
+  --card: oklch(0.25 0.02 70); /* Base - 0.65L, -0.005C, -5H */
+  --card-foreground: oklch(0.9 0.018 75);
+
+  /* Popover - elevated lagi */
+  --popover: oklch(0.28 0.022 70);
+  --popover-foreground: oklch(0.92 0.015 75);
+
+  /* Primary - bright dari base */
+  --primary: oklch(0.75 0.053 77); /* Base - 0.15L, +0.028C, +2H */
+  --primary-foreground: oklch(0.2 0.015 70);
+
+  /* Secondary - mid-tone */
+  --secondary: oklch(0.34 0.025 71); /* Base - 0.56L, sama C, -4H */
+  --secondary-foreground: oklch(0.88 0.02 75);
+
+  /* Muted - subtle */
+  --muted: oklch(0.28 0.02 71); /* Base - 0.62L, -0.005C, -4H */
+  --muted-foreground: oklch(0.64 0.018 73);
+
+  /* Accent - warmer highlight */
+  --accent: oklch(0.38 0.035 72); /* Base - 0.52L, +0.010C, -3H */
+  --accent-foreground: oklch(0.94 0.012 75);
+
+  /* Destructive - adjusted for dark */
+  --destructive: oklch(0.58 0.215 27);
+  --destructive-foreground: oklch(0.95 0.01 75);
+
+  /* Borders - visible tapi subtle */
+  --border: oklch(0.35 0.023 71); /* Base - 0.55L, -0.002C, -4H */
+  --input: oklch(0.32 0.025 71);
+
+  /* Ring - bright */
+  --ring: oklch(0.72 0.05 77);
+
+  /* Charts - vibrant untuk dark mode */
+  --chart-1: oklch(0.65 0.155 255);
+  --chart-2: oklch(0.62 0.135 195);
+  --chart-3: oklch(0.7 0.145 62);
+  --chart-4: oklch(0.68 0.14 288);
+  --chart-5: oklch(0.67 0.15 335);
+
+  /* Sidebar */
+  --sidebar-background: oklch(0.22 0.018 70);
+  --sidebar-foreground: oklch(0.88 0.02 75);
+  --sidebar-primary: oklch(0.73 0.048 77);
+  --sidebar-primary-foreground: oklch(0.2 0.015 70);
+  --sidebar-accent: oklch(0.36 0.028 71);
+  --sidebar-accent-foreground: oklch(0.9 0.015 75);
+  --sidebar-border: oklch(0.33 0.022 71);
+  --sidebar-ring: oklch(0.7 0.046 77);
+}
 
 @layer base {
   * {
