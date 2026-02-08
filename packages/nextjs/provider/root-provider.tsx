@@ -22,7 +22,7 @@ export const RootProvider = ({ children }: { children: React.ReactNode }) => {
       <WagmiProvider config={wagmiConfig}>
         <QueryClientProvider client={queryClient}>
           <RainbowKitProvider avatar={BlockieAvatar} theme={darkTheme()}>
-            <ProgressBar height="3px" color="#fff" />
+            <ProgressBar height="3px" color="#000" options={{ showSpinner: false }} />
             {children}
           </RainbowKitProvider>
         </QueryClientProvider>

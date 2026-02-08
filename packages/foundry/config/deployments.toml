@@ -2,11 +2,11 @@
 endpoint_url = "${ARB_SEPOLIA_ENDPOINT_URL}"
 
 [arbitrum-sepolia.address]
-usdc = "0x0000000000000000000000000000000000000000"
-gainjar = "0x604574aF6E6151475697512c6F8C947E0d936865"
+usdc = "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d"
+gainjar = "0xa7257707cF92DF0eE5C644ffa6b44d26c2047Fd1"
 
 [arbitrum-sepolia.bool]
-with_usdc_mock = true
+with_usdc_mock = false
 
 [anvil]
 endpoint_url = "${ARB_SEPOLIA_ENDPOINT_URL}"

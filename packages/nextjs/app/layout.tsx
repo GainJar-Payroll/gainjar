@@ -5,6 +5,7 @@ import Navbar from "~~/components/navbar";
 import { RootProvider } from "~~/provider/root-provider";
 import "~~/styles/globals.css";
 import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
+import { Toaster } from "~~/components/ui/sonner"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -38,6 +39,7 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
         <RootProvider>
           <Navbar />
           {children}
+          <Toaster />
         </RootProvider>
       </body>
     </html>
