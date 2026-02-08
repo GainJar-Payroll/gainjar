@@ -263,7 +263,7 @@ contract GainJarCreateStreamTest is BaseTest {
 
   function test_PauseStream_ThenReactivate_Sucess() public {
     vm.startPrank(employer);
-    gainjar.deposit(700e6);
+    gainjar.deposit(800e6);
     gainjar.createInfiniteStream(employee, 100e6, 1 days);
 
     vm.warp(block.timestamp + 1 days);
