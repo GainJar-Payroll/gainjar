@@ -1,157 +1,274 @@
-import { useForm } from "react-hook-form";
-import { parseUnits } from "viem";
-import { useAccount, usePublicClient } from "wagmi";
-import { useDeployedContractInfo, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+"use client";
 
-interface DepositModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  formattedBalance: string; // Saldo yang sudah kamu ambil dari hook balance
-  rawBalance: bigint; // Saldo dalam bentuk bigint untuk validasi
-}
+import * as React from "react";
+import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { formatUnits, parseUnits } from "viem";
+import { useAccount } from "wagmi";
+import * as z from "zod";
+import { Button } from "~~/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "~~/components/ui/card";
+import { Field, FieldError, FieldGroup, FieldLabel } from "~~/components/ui/field";
+import { Input } from "~~/components/ui/input";
+import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
-type FormData = {
-  amount: string;
-};
+const formSchema = z.object({
+  amount: z.coerce.number().positive("Amount must be greater than 0").min(1, "Minimum amount is 1 USDC"),
+});
 
-export const DepositModal = ({ isOpen, onClose, formattedBalance, rawBalance }: DepositModalProps) => {
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm<FormData>();
-  const { address } = useAccount();
-  const publicClient = usePublicClient();
-  const { data: gainJarContractData } = useDeployedContractInfo("GainJar");
-  const { data: mockERC20Data } = useDeployedContractInfo("MockERC20");
-  const { writeContractAsync: depositTokens, isPending } = useScaffoldWriteContract("GainJar");
-  const { writeContractAsync: approveTokens } = useScaffoldWriteContract("MockERC20");
-  console.log(rawBalance);
-  // Ambil nilai input secara real-time untuk validasi tombol
-  const amountInput = watch("amount");
-  const onSubmit = async (data: FormData) => {
+type FormData = z.infer<typeof formSchema>;
+
+type TransactionStep = "idle" | "approving" | "approved" | "depositing" | "success";
+
+export function DepositModal() {
+  const [open, setOpen] = React.useState(false);
+  const [step, setStep] = React.useState<TransactionStep>("idle");
+  const { address: userAddress } = useAccount();
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      amount: 0,
+    },
+  });
+
+  const watchAmount = form.watch("amount");
+
+  const { data: gainjar } = useDeployedContractInfo({ contractName: "GainJar" });
+
+  const { data: usdcBalance } = useScaffoldReadContract({
+    contractName: "USDC",
+    functionName: "balanceOf",
+    args: [userAddress],
+  });
+
+  const { data: currentAllowance, refetch: refetchAllowance } = useScaffoldReadContract({
+    contractName: "USDC",
+    functionName: "allowance",
+    args: [userAddress, gainjar?.address as `0x${string}`],
+  });
+
+  const { writeContractAsync: writeUSDCAsync, isPending: isApprovePending } = useScaffoldWriteContract({
+    contractName: "USDC",
+  });
+
+  const { writeContractAsync: writeGainjarAsync, isPending: isDepositPending } = useScaffoldWriteContract({
+    contractName: "GainJar",
+  });
+
+  React.useEffect(() => {
+    if (!open) {
+      setStep("idle");
+      form.reset();
+    }
+  }, [open, form]);
+
+  const needsApproval = React.useMemo(() => {
+    if (!watchAmount || !currentAllowance) return true;
+    const amountInWei = parseUnits(watchAmount.toString(), 6);
+    return currentAllowance < amountInWei;
+  }, [watchAmount, currentAllowance]);
+
+  const formattedBalance = React.useMemo(() => {
+    if (!usdcBalance) return "0";
+    return formatUnits(usdcBalance, 6);
+  }, [usdcBalance]);
+
+  async function onSubmit(data: FormData) {
     try {
-      if (!address) {
-        console.error("Wallet not connected");
+      const amountInWei = parseUnits(data.amount.toString(), 6);
+
+      if (usdcBalance && amountInWei > usdcBalance) {
+        toast.error("Insufficient Balance", {
+          description: `You only have ${formattedBalance} USDC`,
+        });
         return;
       }
 
-      const amountInWei = parseUnits(data.amount, 6);
-      const GAINJAR_ADDRESS = gainJarContractData!.address;
-      const TOKEN_ADDRESS = mockERC20Data!.address;
-      // Cek decimals token
-      const decimals = await publicClient!.readContract({
-        address: TOKEN_ADDRESS as `0x${string}`,
-        abi: mockERC20Data!.abi,
-        functionName: "decimals",
-      });
-
-      console.log("Token decimals:", decimals);
-
-      console.log("=== DEBUG INFO ===");
-      console.log("Token Address:", TOKEN_ADDRESS);
-      console.log("GainJar Address:", GAINJAR_ADDRESS);
-      console.log("Amount:", amountInWei.toString());
-      console.log("Meminta izin (Approve)...");
-      const approveHash = await approveTokens({
-        functionName: "approve",
-        args: [GAINJAR_ADDRESS, amountInWei],
-      });
-
-      if (approveHash && publicClient && address) {
-        console.log("Approve tx:", approveHash);
-
-        await publicClient.waitForTransactionReceipt({
-          hash: approveHash,
-          confirmations: 2,
+      if (needsApproval) {
+        setStep("approving");
+        toast.info("Step 1/2: Approving USDC...", {
+          description: "Please confirm the transaction in your wallet",
         });
 
-        console.log("=== AFTER APPROVE ===");
-
-        // ✅ CEK ALLOWANCE
-        const allowance = await publicClient.readContract({
-          address: TOKEN_ADDRESS as `0x${string}`,
-          abi: mockERC20Data!.abi,
-          functionName: "allowance",
-          args: [address, GAINJAR_ADDRESS], // Perlu import useAccount
+        await writeUSDCAsync({
+          functionName: "approve",
+          args: [gainjar?.address as `0x${string}`, amountInWei],
         });
 
-        console.log("Allowance set:", allowance.toString());
-        console.log("Amount to deposit:", amountInWei.toString());
-        console.log("Sufficient?", allowance >= amountInWei);
+        await refetchAllowance();
 
-        // Delay safety
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        setStep("approved");
+        toast.success("USDC Approved!", {
+          description: "Now depositing to your vault...",
+        });
+      } else {
+        setStep("approved");
       }
 
-      // LANGKAH 2: DEPOSIT
-      console.log("Melakukan Deposit...");
-      await depositTokens({
+      setStep("depositing");
+      toast.info(needsApproval ? "Step 2/2: Depositing to vault..." : "Depositing to vault...", {
+        description: "Please confirm the transaction in your wallet",
+      });
+
+      await writeGainjarAsync({
         functionName: "deposit",
         args: [amountInWei],
       });
 
-      onClose();
-    } catch (e) {
-      console.error("Deposit error:", e);
+      setStep("success");
+      toast.success("Deposit Successful!", {
+        description: `Successfully deposited ${data.amount} USDC to your vault`,
+      });
+
+      setTimeout(() => {
+        setOpen(false);
+      }, 1500);
+    } catch (error: any) {
+      console.error("Transaction error:", error);
+      setStep("idle");
+
+      if (error?.message?.includes("User rejected") || error?.message?.includes("User denied")) {
+        toast.error("Transaction Cancelled", {
+          description: "You rejected the transaction",
+        });
+        return;
+      }
+
+      toast.error("Transaction Failed", {
+        description: error?.shortMessage || error?.message || "Something went wrong. Please try again.",
+      });
+    }
+  }
+
+  const isLoading = isApprovePending || isDepositPending || step === "approving" || step === "depositing";
+  const isApproved = step === "approved" || step === "depositing" || step === "success";
+
+  // Auto-fill max balance helper
+  const setMaxBalance = () => {
+    if (usdcBalance) {
+      const maxAmount = formatUnits(usdcBalance, 6);
+      form.setValue("amount", Number(maxAmount));
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-card border border-border p-8 rounded-lg max-w-md w-full shadow-2xl">
-        <h3 className="text-xl font-bold mb-2">Deposit USDC</h3>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={<Button size="lg">Deposit</Button>}></DialogTrigger>
 
-        <div className="flex justify-between items-center mb-6">
-          <p className="text-xs font-mono text-muted-foreground">Your Balance</p>
-          <p className="text-xs font-mono font-bold text-blue-500">{formattedBalance} USDC</p>
-        </div>
+      <DialogContent className="sm:max-w-sm p-0">
+        <Card className="w-full sm:max-w-md">
+          <CardHeader>
+            <CardTitle>Deposit to your vault</CardTitle>
+            <CardDescription>Balance: {formattedBalance} USDC</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form id="form-deposit" onSubmit={form.handleSubmit(onSubmit)}>
+              <FieldGroup>
+                <Controller
+                  name="amount"
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <div className="flex items-center justify-between">
+                        <FieldLabel htmlFor="form-deposit-amount">Amount USDC</FieldLabel>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-auto text-xs"
+                          onClick={setMaxBalance}
+                          disabled={isLoading}
+                        >
+                          Max
+                        </Button>
+                      </div>
+                      <Input
+                        {...field}
+                        id="form-deposit-amount"
+                        aria-invalid={fieldState.invalid}
+                        placeholder="0.00"
+                        type="number"
+                        step="0.000001"
+                        min="0"
+                        disabled={isLoading}
+                      />
+                      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
 
-        <p className="text-sm text-muted-foreground mb-6 font-mono">
-          Enter the amount of USDC you want to add to your vault.
-        </p>
+                      {/* Show current allowance info */}
+                      {!fieldState.invalid && currentAllowance !== undefined && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {needsApproval ? (
+                            <span className="text-orange-500">⚠️ Approval required</span>
+                          ) : (
+                            <span className="text-green-500">✓ Already approved</span>
+                          )}
+                        </p>
+                      )}
+                    </Field>
+                  )}
+                />
+              </FieldGroup>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="mb-6">
-            <input
-              type="number"
-              step="any"
-              placeholder="0.00"
-              {...register("amount", {
-                required: "Amount is required",
-                validate: {
-                  positive: v => parseFloat(v) > 0 || "Must be greater than 0",
-                  lessThanBalance: v => parseUnits(v, 6) <= rawBalance || "Insufficient balance",
-                },
-              })}
-              className={`w-full p-3 bg-background border rounded font-mono focus:ring-2 outline-none transition-all ${
-                errors.amount ? "border-red-500 focus:ring-red-500" : "border-border focus:ring-blue-500"
-              }`}
-            />
-            {errors.amount && <p className="text-red-500 text-xs mt-2 font-mono">{errors.amount.message}</p>}
-          </div>
+              {/* Progress Indicator */}
+              {isLoading && (
+                <div className="mt-4 space-y-2 p-4 bg-muted/30 rounded-md">
+                  <div className="text-xs font-medium mb-2 text-muted-foreground">Transaction Progress</div>
 
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-border hover:bg-accent transition-colors rounded"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isPending || !amountInput || !!errors.amount}
-              className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isPending ? "Confirming..." : "Deposit"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+                  {needsApproval && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <div
+                        className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                          step === "approving" ? "bg-primary animate-pulse" : isApproved ? "bg-green-500" : "bg-muted"
+                        }`}
+                      />
+                      <span className={isApproved ? "text-green-500 font-medium" : ""}>
+                        {step === "approving" ? "Approving USDC..." : isApproved ? "USDC Approved ✓" : "Approve USDC"}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <div
+                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        step === "depositing"
+                          ? "bg-primary animate-pulse"
+                          : step === "success"
+                            ? "bg-green-500"
+                            : "bg-muted"
+                      }`}
+                    />
+                    <span className={step === "success" ? "text-green-500 font-medium" : ""}>
+                      {step === "depositing"
+                        ? "Depositing to vault..."
+                        : step === "success"
+                          ? "Deposit Complete ✓"
+                          : "Deposit to vault"}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </form>
+          </CardContent>
+          <CardFooter className="flex-col gap-2">
+            <Button type="submit" form="form-deposit" className="w-full" disabled={isLoading}>
+              {step === "idle" && (needsApproval ? "Approve & Deposit" : "Deposit")}
+              {step === "approving" && "Approving..."}
+              {step === "approved" && "Proceed to Deposit"}
+              {step === "depositing" && "Depositing..."}
+              {step === "success" && "Success! ✓"}
+            </Button>
+
+            {needsApproval && step === "idle" && (
+              <p className="text-xs text-muted-foreground text-center">
+                This will require 2 transactions: Approve + Deposit
+              </p>
+            )}
+          </CardFooter>
+        </Card>
+      </DialogContent>
+    </Dialog>
   );
-};
+}

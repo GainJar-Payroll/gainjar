@@ -5,7 +5,6 @@ import { RainbowKitConnectButton } from "~~/components/rainbow-kit-connect-butto
 
 export function WalletGate({ children }: { children: React.ReactNode }) {
   const { isConnected } = useAccount();
-  console.log("🚀 ~ WalletGate ~ isConnected:", isConnected);
 
   if (!isConnected) {
     return (
