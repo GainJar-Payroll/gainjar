@@ -1,9 +1,27 @@
+"use client";
+
+import { useState } from "react";
 import { Check, Eye, Info, Plus, ZapOff } from "lucide-react";
+import { formatUnits } from "viem";
+import { useAccount } from "wagmi";
+import { DepositModal } from "~~/components/dashboard/deposit-modal";
 import StreamsOverview from "~~/components/dashboard/streams-overview";
 import VaultMetrics from "~~/components/dashboard/vault-metrics";
 import VaultRecommendations from "~~/components/dashboard/vault-recommendations";
+import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
 const page = () => {
+  const { address } = useAccount();
+
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  // Ambil saldo USDC milik user
+  const { data: userUsdcBalance } = useScaffoldReadContract({
+    contractName: "MockERC20", // Pastikan nama kontrak USDC sudah ada di externalContracts atau deployedContracts
+    functionName: "balanceOf",
+    args: [address],
+  });
+
+  const formattedBalance = userUsdcBalance ? Number(formatUnits(userUsdcBalance, 6)).toLocaleString() : "0";
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
@@ -56,7 +74,10 @@ const page = () => {
         {/* Action Cards - INI YANG PENTING! */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {/* Deposit Card */}
-          <button className="border border-dashed border-border p-6 bg-card hover:bg-accent/20 transition-all duration-200 cursor-pointer group text-left">
+          <button
+            onClick={() => setIsDepositModalOpen(true)}
+            className="border border-dashed border-border p-6 bg-card hover:bg-accent/20 transition-all duration-200 cursor-pointer group text-left"
+          >
             <div className="flex flex-col items-center text-center gap-3">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30  flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Plus className="text-blue-600 dark:text-blue-400" size={24} />
@@ -160,6 +181,12 @@ const page = () => {
           </div>
         </div>
       </div>
+      <DepositModal
+        isOpen={isDepositModalOpen}
+        onClose={() => setIsDepositModalOpen(false)}
+        formattedBalance={formattedBalance} // "100.00"
+        rawBalance={userUsdcBalance!} // 100000000n (BigInt)
+      />
     </div>
   );
 };

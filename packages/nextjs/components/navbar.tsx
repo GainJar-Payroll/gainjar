@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { RainbowKitConnectButton } from "./rainbow-kit-connect-button";
 import { cn } from "~~/lib/utils";
+import { ROUTES } from "~~/app/routes";
 
 export default function Navbar() {
   return (
@@ -10,7 +11,7 @@ export default function Navbar() {
           Gainjar
         </Link>
         <div className="flex justify-center items-center gap-4 font-mono uppercase text-xs">
-          <Link href={"/dashboard"} className="hover:underline">
+          <Link href={ROUTES.EMPLOYER_DASHBOARD} className="hover:underline">
             Dashboard
           </Link>
           <RainbowKitConnectButton />
