@@ -33,7 +33,7 @@ const CreateStreamModal = () => {
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: { receiver: "", amount: 0 },
+    defaultValues: { receiver: "", amount: 0, durationDays: 30, isInfinite: false },
   });
 
   // 1. Ambil Data Kontrak (Ganti nama kontrak sesuai projectmu)
@@ -58,6 +58,37 @@ const CreateStreamModal = () => {
   const amountInWei = parseUnits(form.getValues("amount")?.toString() || "0", 6);
   const needsApproval = currentAllowance !== undefined && currentAllowance < amountInWei;
 
+  const watchAmount = form.watch("amount") || 0;
+  const watchDuration = form.watch("durationDays") || 0;
+  const isInfinite = form.watch("isInfinite");
+
+  const calculatePreview = () => {
+    const amount = Number(form.watch("amount")) || 0;
+    const duration = Number(form.watch("durationDays")) || 1;
+    const isInfinite = form.watch("isInfinite");
+    if (isInfinite) {
+      return {
+        monthly: amount.toFixed(2),
+        daily: (amount / 30).toFixed(4),
+        total: "∞",
+        note: "Streams indefinitely based on monthly budget.",
+      };
+    }
+
+    // Mode Finite: Kita asumsikan inputAmount adalah jatah PER BULAN
+    // Jadi total yang akan dikirim adalah (inputAmount / 30) * durasi
+    const dailyRate = amount / 30;
+    const totalToSent = dailyRate * duration;
+
+    return {
+      monthly: amount.toFixed(2),
+      daily: dailyRate.toFixed(4),
+      total: totalToSent.toFixed(2),
+      note: `Stream will stop after reaching ${totalToSent.toFixed(2)} USDC (${duration} days).`,
+    };
+  };
+  const preview = calculatePreview();
+
   const setMaxBalance = () => {
     if (rawBalance) {
       form.setValue("amount", Number(formatUnits(rawBalance, 6)));
@@ -68,15 +99,22 @@ const CreateStreamModal = () => {
     try {
       setStep("approving");
       const isInfinite = data.isInfinite;
+
       const amountInWei = parseUnits(data.amount.toString(), 6);
-      const flowRate = amountInWei / durationInSeconds; // Ini yang dikirim ke kontrak
+      // Kita hitung flowRate berdasarkan jatah bulanan (30 hari)
+      const thirtyDaysInSeconds = BigInt(30 * 24 * 60 * 60);
+
+      let finalAmountToLock: bigint;
 
       if (isInfinite) {
-        flowRate = parseUnits("0.01", 6);
+        finalAmountToLock = amountInWei;
       } else {
         const durationInSeconds = BigInt(data.durationDays || 1) * 86400n;
-        flowRate = amountInWei / durationInSeconds;
+        finalAmountToLock = flowRate * durationInSeconds;
       }
+
+      console.log("Flow Rate (per sec):", flowRate);
+      console.log("Total to Deposit:", finalAmountToLock);
       // // LANGKAH 1: APPROVE (Jika perlu)
       // if (needsApproval) {
       //   const hash = await writeUSDC({
@@ -141,7 +179,7 @@ const CreateStreamModal = () => {
                   render={({ field, fieldState }) => (
                     <Field>
                       <div className="flex justify-between items-center">
-                        <FieldLabel>Total Amount</FieldLabel>
+                        <FieldLabel>Total Amount / month</FieldLabel>
                         <Button type="button" variant="link" size="sm" onClick={setMaxBalance} className="h-0 px-0">
                           Max: {rawBalance ? formatUnits(rawBalance, 6) : "0"}
                         </Button>
@@ -151,9 +189,35 @@ const CreateStreamModal = () => {
                     </Field>
                   )}
                 />
+
+                {watchAmount > 0 && (
+                  <div className="mt-4 border border-foreground/20 bg-muted/30 p-3 font-mono text-[10px]">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground uppercase">Budget_Monthly:</span>
+                      <span className="font-bold">{preview.monthly} USDC</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground uppercase">Rate_Daily:</span>
+                      <span>{preview.daily} USDC</span>
+                    </div>
+                    <div className="flex justify-between border-t border-dashed border-foreground/20 mt-2 pt-2">
+                      <span className="text-muted-foreground uppercase font-bold">Total_Commitment:</span>
+                      <span className="text-primary font-bold">{preview.total} USDC</span>
+                    </div>
+
+                    <div className="flex justify-between mb-1">
+                      <span className="uppercase text-muted-foreground">Flow_Type:</span>
+                      <span className="font-bold">{isInfinite ? "♾ INFINITE" : "⏳ FINITE"}</span>
+                    </div>
+
+                    <div className="mt-2 pt-2 border-t border-dashed border-foreground/20 italic text-muted-foreground">
+                      {preview.note}
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center justify-between p-2 border rounded-md bg-secondary/20">
                   <FieldLabel className="mb-0">
-                    {form.watch("isInfinite") ? "Infinite Stream" : "Finite Stream"}
+                    Inifinite Stream
                   </FieldLabel>
                   <Switch
                     checked={form.watch("isInfinite")}
