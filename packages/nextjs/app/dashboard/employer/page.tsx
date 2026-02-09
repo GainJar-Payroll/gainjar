@@ -1,4 +1,5 @@
 import { Check, Info } from "lucide-react";
+import CreateStreamModal from "~~/components/dashboard/create-stream-modal";
 import { DepositModal } from "~~/components/dashboard/deposit-modal";
 import StreamsOverview from "~~/components/dashboard/streams-overview";
 import VaultMetrics from "~~/components/dashboard/vault-metrics";
@@ -14,7 +15,10 @@ const page = () => {
             <h1 className="text-5xl sm:text-6xl font-heading font-bold text-foreground mb-2">Employer Dashboard</h1>
             <p className="font-mono text-muted-foreground text-sm">Manage your payroll streams and vault health</p>
           </div>
-          <DepositModal />
+          <div className="flex justify-center gap-4">
+            <DepositModal />
+            <CreateStreamModal />
+          </div>
         </div>
 
         {/* Grid Layout */}
