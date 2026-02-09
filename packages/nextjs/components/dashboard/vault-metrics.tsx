@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "../ui/button";
-import { AlertCircle, RotateCcw, TrendingUp } from "lucide-react";
+import { AlertCircle, RefreshCw, RotateCcw, TrendingUp } from "lucide-react";
 import { maxUint256 } from "viem";
 import { useAccount } from "wagmi";
 import { ONE_DAY } from "~~/const";
@@ -11,10 +11,11 @@ import { EVaultStatus, VaultStatusLabel } from "~~/types/type";
 export default function VaultMetrics() {
   const { address } = useAccount();
 
-  const { data, isLoading, isError, refetch } = useScaffoldReadContract({
+  const { data, isLoading, isError, refetch, isFetching } = useScaffoldReadContract({
     contractName: "GainJar",
     functionName: "getVaultHealth",
     args: [address],
+    watch: true,
   });
 
   if (isError) {
@@ -115,7 +116,12 @@ export default function VaultMetrics() {
   const styles = getStatusStyles();
 
   return (
-    <div className={`bg-card border p-6 transition-all duration-300 ${styles.border} ${styles.bg}`}>
+    <div className={`relative bg-card border p-6 transition-all duration-300 ${styles.border} ${styles.bg}`}>
+      {isFetching ? (
+        <div className="bg-primary text-primary-foreground p-2 size-8 absolute top-5 right-5 flex justify-center items-center">
+          <RefreshCw className="animate-spin text-base" />
+        </div>
+      ) : null}
       {/* Main Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Left Column - Primary Info */}

@@ -10,7 +10,7 @@ export default function Navbar() {
           Gainjar
         </Link>
         <div className="flex justify-center items-center gap-4 font-mono uppercase text-xs">
-          <Link href={"/dashboard"} className="hover:underline">
+          <Link href={"/dashboard/employer"} className="hover:underline">
             Dashboard
           </Link>
           <RainbowKitConnectButton />

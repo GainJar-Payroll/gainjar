@@ -39,7 +39,7 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
         <RootProvider>
           <Navbar />
           {children}
-          <Toaster />
+          {/* <Toaster /> */}
         </RootProvider>
       </body>
     </html>

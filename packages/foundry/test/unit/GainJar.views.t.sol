@@ -211,15 +211,13 @@ contract GainJarViewsTest is BaseTest {
 
   function test_GetLiquidationPreview_WhenEligible() public {
     _setupEmployerInEmergency();
-    (bool eligible, GainJar.VaultStatus status,, uint256 estimatedReward,, uint256 cooldownRemaining) =
-      gainjar.getLiquidationPreview(employer);
+    (bool eligible, GainJar.VaultStatus status,, uint256 estimatedReward,) = gainjar.getLiquidationPreview(employer);
 
     assertTrue(eligible, "eligible");
     assertTrue(
       status == GainJar.VaultStatus.CRITICAL || status == GainJar.VaultStatus.EMERGENCY, "CRITICAL or EMERGENCY"
     );
     assertGt(estimatedReward, 0, "reward > 0");
-    assertEq(cooldownRemaining, 0, "no cooldown");
   }
 
   function test_GetLiquidationPreview_WhenNotEligible() public {
@@ -228,7 +226,7 @@ contract GainJarViewsTest is BaseTest {
     vm.prank(employer);
     gainjar.createInfiniteStream(employee, 100 * 1e6, 1 days);
 
-    (bool eligible,,,,,) = gainjar.getLiquidationPreview(employer);
+    (bool eligible,,,,) = gainjar.getLiquidationPreview(employer);
     assertFalse(eligible, "not eligible");
   }
 
@@ -238,9 +236,8 @@ contract GainJarViewsTest is BaseTest {
     gainjar.liquidate(employer);
 
     vm.warp(block.timestamp + 30 minutes);
-    (bool eligible,,,,, uint256 cooldownRemaining) = gainjar.getLiquidationPreview(employer);
+    (bool eligible,,,,) = gainjar.getLiquidationPreview(employer);
     assertFalse(eligible, "not eligible during cooldown");
-    assertGt(cooldownRemaining, 0, "cooldown remaining");
   }
 
   function test_GetVaultHealth_MaxAdditionalFlowRate_WhenBalanceExceedsRequired() public {

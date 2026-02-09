@@ -4,14 +4,20 @@ import { useEffect, useMemo } from "react";
 import { ContractUI } from "./ContractUI";
 import "@scaffold-ui/debug-contracts/styles.css";
 import { useSessionStorage } from "usehooks-ts";
+import { useAccount } from "wagmi";
 import { BarsArrowUpIcon } from "@heroicons/react/20/solid";
+import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { ContractName, GenericContract } from "~~/utils/scaffold-eth/contract";
 import { useAllContracts } from "~~/utils/scaffold-eth/contractsData";
+import { parseUnits } from "viem";
+
 
 const selectedContractStorageKey = "scaffoldEth2.selectedContract";
 
 export function DebugContracts() {
+  const { address}  = useAccount();
   const contractsData = useAllContracts();
+  const { writeContractAsync: mintTokens } = useScaffoldWriteContract("MockERC20");
   const contractNames = useMemo(
     () =>
       Object.keys(contractsData).sort((a, b) => {
@@ -19,7 +25,16 @@ export function DebugContracts() {
       }) as ContractName[],
     [contractsData],
   );
-
+  const handleMint = async () => {
+    try {
+      await mintTokens({
+        functionName: "mint",
+        args: [address, parseUnits("1000", 18)],
+      });
+    } catch (e) {
+      console.error("Error minting tokens", e);
+    }
+  };
   const [selectedContract, setSelectedContract] = useSessionStorage<ContractName>(
     selectedContractStorageKey,
     contractNames[0],
@@ -66,6 +81,9 @@ export function DebugContracts() {
           )}
         </>
       )}
+      <button className="btn btn-primary" onClick={handleMint}>
+        Faucet USDC (Mint)
+      </button>
     </div>
   );
 }

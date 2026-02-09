@@ -13,7 +13,7 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
  * INIFNITE -> there is no set of end time for the stream, this can be suitable for full time employee
  * FINITE -> the end time is specified, so the stream payment only work with in the interval time, suitable for project based employee
  *
- * @author raihanmd
+ * @author raihanmd, syafiq
  */
 contract GainJar is Context, ReentrancyGuard, Ownable {
   // ==============
@@ -57,6 +57,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   error GainJar__StreamExists();
   error GainJar__StreamNotActive();
   error GainJar__StreamAlreadyActive();
+  error GainJar__CannotActivateStreamInDangerousVaultState();
 
   error GainJar__AmountExceedsEarned();
   error GainJar__AmountTooSmall();
@@ -168,10 +169,9 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
 
   mapping(address => mapping(address => bool)) private s_isActiveEmployee;
 
-  // Track last liquidation time per employer
-  mapping(address => uint256) private s_lastLiquidationTime;
-
   address[] private s_employerList;
+
+  mapping(address => bool) private s_employerExist;
 
   // USDC as for payment token
   IERC20 private immutable i_paymentToken;
@@ -230,7 +230,9 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
       revert GainJar__DepositCantBeZero();
     }
 
-    s_employerList.push(_msgSender());
+    if (!s_employerExist[_msgSender()]) {
+      s_employerList.push(_msgSender());
+    }
 
     i_paymentToken.transferFrom(_msgSender(), address(this), _amount);
 
@@ -441,27 +443,18 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
    *
    * Flow:
    * 1. Check vault status is EMERGENCY
-   * 2. Check cooldown passed
-   * 3. Check vault has enough for reward
-   * 4. Pause all active streams
-   * 5. Pay liquidator reward
+   * 2. Check vault has enough for reward
+   * 3. Pause all active streams
+   * 4. Pay liquidator reward
    */
   function liquidate(address _employer) external nonReentrant {
-    // 1. Check status is EMERGENCY
     VaultStatus status = getVaultStatus(_employer);
     if (status != VaultStatus.CRITICAL && status != VaultStatus.EMERGENCY) {
       revert GainJar__VaultNotEligibleForLiquidation(status);
     }
 
-    // 2. Check cooldown
-    uint256 lastLiquidation = s_lastLiquidationTime[_employer];
-    if (block.timestamp < lastLiquidation + LIQUIDATION_COOLDOWN) {
-      revert GainJar__LiquidationCooldownActive((lastLiquidation + LIQUIDATION_COOLDOWN) - block.timestamp);
-    }
-
     address[] memory employees = s_activeEmployeeList[_employer];
 
-    // 3. First pass: hitung total earned (view-only, no state change)
     uint256 totalEmployeeEarnings = 0;
     for (uint256 i = 0; i < employees.length; i++) {
       Stream memory stream = s_streams[_employer][employees[i]];
@@ -470,16 +463,13 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
       }
     }
 
-    // 4. Calculate dynamic reward
     uint256 reward = _calculateLiquidationReward(totalEmployeeEarnings, status);
 
-    // 5. Check vault can cover everything
     uint256 totalRequired = totalEmployeeEarnings + reward;
     if (s_vaultBalances[_employer] < totalRequired) {
       revert GainJar__InsufficientVaultForLiquidation(s_vaultBalances[_employer], totalRequired);
     }
 
-    // 6. Second pass: withdraw + pause (state changes)
     uint256 streamsPaused = 0;
     for (uint256 i = 0; i < employees.length; i++) {
       Stream storage stream = s_streams[_employer][employees[i]];
@@ -512,12 +502,8 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
 
     delete s_activeEmployeeList[_employer];
 
-    // 7. Pay liquidator reward (no fee on reward)
     s_vaultBalances[_employer] -= reward;
     i_paymentToken.transfer(_msgSender(), reward);
-
-    // 8. Update state
-    s_lastLiquidationTime[_employer] = block.timestamp;
 
     emit Liquidated(_msgSender(), _employer, totalEmployeeEarnings, reward, streamsPaused);
   }
@@ -531,7 +517,22 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
       revert GainJar__StreamAlreadyActive();
     }
 
+    uint256 currentFlowRate = getTotalFlowRate(_msgSender());
+    uint256 newFlowRate = currentFlowRate + stream.ratePerSecond;
+
+    uint256 minRequiredBalance = newFlowRate * MIN_COVERAGE_DAYS_SECOND;
+    if (s_vaultBalances[_msgSender()] < minRequiredBalance) {
+      revert GainJar__InsufficientEmployerVault(_msgSender());
+    }
+
+    VaultStatus futureStatus = _calculateFutureVaultStatus(_msgSender(), newFlowRate);
+    if (futureStatus == VaultStatus.EMERGENCY || futureStatus == VaultStatus.CRITICAL) {
+      revert GainJar__CannotActivateStreamInDangerousVaultState();
+    }
+
     stream.isActive = true;
+
+    stream.lastWithdrawal = block.timestamp;
 
     s_activeEmployeeIndex[_msgSender()][_employee] = s_activeEmployeeList[_msgSender()].length;
     s_activeEmployeeList[_msgSender()].push(_employee);
@@ -565,19 +566,11 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
       VaultStatus status,
       uint256 totalEmployeeEarnings,
       uint256 estimatedReward,
-      uint256 vaultAfterLiquidation,
-      uint256 cooldownRemaining
+      uint256 vaultAfterLiquidation
     )
   {
     status = getVaultStatus(_employer);
     eligible = (status == VaultStatus.CRITICAL || status == VaultStatus.EMERGENCY);
-
-    // Cooldown check
-    uint256 lastLiquidation = s_lastLiquidationTime[_employer];
-    if (block.timestamp < lastLiquidation + LIQUIDATION_COOLDOWN) {
-      cooldownRemaining = (lastLiquidation + LIQUIDATION_COOLDOWN) - block.timestamp;
-      eligible = false;
-    }
 
     // Calculate total earned
     address[] memory employees = s_employeeList[_employer];
@@ -812,6 +805,25 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   // =====================
   // Internal functions
   // =====================
+
+  /**
+   * @notice Internal function for calculate future vault status
+   * @param _newFlowRate New flow rate coming
+   * @return Future VaultStatus
+   */
+  function _calculateFutureVaultStatus(address _employer, uint256 _newFlowRate) internal view returns (VaultStatus) {
+    uint256 balance = s_vaultBalances[_employer];
+
+    if (_newFlowRate == 0) return VaultStatus.HEALTHY;
+
+    uint256 secondsUntilEmpty = balance / _newFlowRate;
+    uint256 daysRemaining = secondsUntilEmpty / 1 days;
+
+    if (daysRemaining >= 30) return VaultStatus.HEALTHY;
+    if (daysRemaining >= 7) return VaultStatus.WARNING;
+    if (daysRemaining >= 3) return VaultStatus.CRITICAL;
+    return VaultStatus.EMERGENCY;
+  }
 
   /**
    * @notice Calculate fee from given amount
