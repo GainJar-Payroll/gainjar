@@ -11,8 +11,18 @@ import { formatUnits, parseUnits } from "viem";
 import { useAccount } from "wagmi";
 import * as z from "zod";
 import { Button } from "~~/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~~/components/ui/card";
-import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "~~/components/ui/card";
+import {
+  useDeployedContractInfo,
+  useScaffoldReadContract,
+  useScaffoldWriteContract,
+} from "~~/hooks/scaffold-eth";
 import { useTransactionFlow } from "~~/hooks/useTransactionFlow";
 
 const formSchema = z.object({
@@ -25,17 +35,20 @@ export function DepositModal() {
   const [open, setOpen] = React.useState(false);
   const { address } = useAccount();
 
-  const { step, isLoading, handleApprove, handleTransaction, reset } = useTransactionFlow({
-    successMessage: "Deposit Successful!",
-    onSuccess: () => setTimeout(() => setOpen(false), 1500),
-  });
+  const { step, isLoading, handleApprove, handleTransaction, reset } =
+    useTransactionFlow({
+      successMessage: "Deposit Successful!",
+      onSuccess: () => setTimeout(() => setOpen(false), 1500),
+    });
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: { amount: 0 },
   });
 
-  const { data: gainjar } = useDeployedContractInfo({ contractName: "GainJar" });
+  const { data: gainjar } = useDeployedContractInfo({
+    contractName: "GainJar",
+  });
 
   const { data: usdcBalance } = useScaffoldReadContract({
     contractName: "USDC",
@@ -43,14 +56,19 @@ export function DepositModal() {
     args: [address],
   });
 
-  const { data: currentAllowance, refetch: refetchAllowance } = useScaffoldReadContract({
-    contractName: "USDC",
-    functionName: "allowance",
-    args: [address, gainjar?.address as `0x${string}`],
-  });
+  const { data: currentAllowance, refetch: refetchAllowance } =
+    useScaffoldReadContract({
+      contractName: "USDC",
+      functionName: "allowance",
+      args: [address, gainjar?.address as `0x${string}`],
+    });
 
-  const { writeContractAsync: writeUSDC } = useScaffoldWriteContract({ contractName: "USDC" });
-  const { writeContractAsync: writeGainJar } = useScaffoldWriteContract({ contractName: "GainJar" });
+  const { writeContractAsync: writeUSDC } = useScaffoldWriteContract({
+    contractName: "USDC",
+  });
+  const { writeContractAsync: writeGainJar } = useScaffoldWriteContract({
+    contractName: "GainJar",
+  });
 
   const watchAmount = form.watch("amount");
   const formattedBalance = formatUnits(usdcBalance || 0n, 6);
@@ -88,7 +106,8 @@ export function DepositModal() {
     }, needsApproval);
   }
 
-  const isApproved = step === "approved" || step === "depositing" || step === "success";
+  const isApproved =
+    step === "approved" || step === "depositing" || step === "success";
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -107,21 +126,37 @@ export function DepositModal() {
           </CardHeader>
 
           <CardContent>
-            <form id="form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form
+              id="form"
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-4"
+            >
               <Controller
                 name="amount"
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <AmountInput
                     label="Amount USDC"
-                    value={field.value}
-                    onChange={field.onChange}
+                    value={field.value === 0 ? "" : field.value}
+                    onChange={(e) => {
+                      const val = e.target ? e.target.value : e;
+                      if (val === "") {
+                        field.onChange("");
+                        return;
+                      }
+                      const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
+                      field.onChange(cleanVal);
+                    }}
                     error={fieldState.error}
                     maxBalance={formattedBalance}
                     onMaxClick={() => field.onChange(Number(formattedBalance))}
                     disabled={isLoading}
                     helperText={
-                      needsApproval ? "⚠️ Approval required" : currentAllowance ? "✓ Already approved" : undefined
+                      needsApproval
+                        ? "⚠️ Approval required"
+                        : currentAllowance
+                          ? "✓ Already approved"
+                          : undefined
                     }
                   />
                 )}
@@ -133,8 +168,17 @@ export function DepositModal() {
                     ...(needsApproval
                       ? [
                           {
-                            label: step === "approving" ? "Approving..." : isApproved ? "Approved ✓" : "Approve USDC",
-                            status: (step === "approving" ? "loading" : isApproved ? "success" : "idle") as any,
+                            label:
+                              step === "approving"
+                                ? "Approving..."
+                                : isApproved
+                                  ? "Approved ✓"
+                                  : "Approve USDC",
+                            status: (step === "approving"
+                              ? "loading"
+                              : isApproved
+                                ? "success"
+                                : "idle") as any,
                           },
                         ]
                       : []),
@@ -145,7 +189,11 @@ export function DepositModal() {
                           : step === "success"
                             ? "Deposited ✓"
                             : "Deposit to Vault",
-                      status: (step === "depositing" ? "loading" : step === "success" ? "success" : "idle") as any,
+                      status: (step === "depositing"
+                        ? "loading"
+                        : step === "success"
+                          ? "success"
+                          : "idle") as any,
                     },
                   ]}
                 />
@@ -154,8 +202,14 @@ export function DepositModal() {
           </CardContent>
 
           <CardFooter className="flex-col gap-2">
-            <Button type="submit" form="form" className="w-full uppercase tracking-wider" disabled={isLoading}>
-              {step === "idle" && (needsApproval ? "Approve & Deposit" : "Deposit")}
+            <Button
+              type="submit"
+              form="form"
+              className="w-full uppercase tracking-wider"
+              disabled={isLoading}
+            >
+              {step === "idle" &&
+                (needsApproval ? "Approve & Deposit" : "Deposit")}
               {step === "approving" && "Approving..."}
               {step === "approved" && "Depositing..."}
               {step === "depositing" && "Depositing..."}
@@ -163,7 +217,10 @@ export function DepositModal() {
             </Button>
 
             {needsApproval && step === "idle" && (
-              <TransactionAlert type="info" title="Requires 2 transactions: Approve + Deposit" />
+              <TransactionAlert
+                type="info"
+                title="Requires 2 transactions: Approve + Deposit"
+              />
             )}
           </CardFooter>
         </Card>
