@@ -6,6 +6,7 @@ import { PreviewBox } from "../preview-box";
 import { TransactionAlert } from "../transaction-alert";
 import { TransactionProgress } from "../transaction-progress";
 import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
+import { Input } from "../ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { formatUnits, parseUnits } from "viem";
@@ -13,7 +14,7 @@ import { useAccount } from "wagmi";
 import * as z from "zod";
 import { Button } from "~~/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~~/components/ui/card";
-import { FieldGroup, FieldLabel } from "~~/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "~~/components/ui/field";
 import { Label } from "~~/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~~/components/ui/radio-group";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
@@ -91,6 +92,7 @@ export function CreateStreamModal() {
       perSecond: perSecond.toFixed(8),
       total: amount.toFixed(2),
       duration: isMonthly ? "Ongoing" : `${duration} days`,
+      finalPayout: isMonthly ? 0 : ((amount * 1e6) % (duration * 24 * 60 * 60)) / 1e6,
     };
   }, [watchType, watchMonthlySalary, watchTotalPayment, watchDuration]);
 
@@ -139,6 +141,23 @@ export function CreateStreamModal() {
 
           <CardContent>
             <form id="form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <Controller
+                name="receiver"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel className="text-xs uppercase tracking-wider">Employee Wallet Address</FieldLabel>
+                    <Input {...field} placeholder="0x..." disabled={isLoading} className="font-mono text-sm" />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                    {!fieldState.invalid && field.value && (
+                      <p className="text-xs text-muted-foreground mt-1 font-mono">
+                        → {field.value.slice(0, 6)}...{field.value.slice(-4)}
+                      </p>
+                    )}
+                  </Field>
+                )}
+              />
+
               {/* Stream Type */}
               <div className="border-l-4 border-foreground pl-6 py-4 bg-muted/10">
                 <FieldLabel className="text-xs uppercase tracking-wider mb-4 block">Payment Type</FieldLabel>
@@ -177,6 +196,8 @@ export function CreateStreamModal() {
                       value={field.value || 0}
                       onChange={field.onChange}
                       error={fieldState.error}
+                      maxBalance={formattedBalance}
+                      onMaxClick={() => field.onChange(Number(formattedBalance))}
                       disabled={isLoading}
                       helperText="Employee earns this every 30 days"
                     />
@@ -193,6 +214,8 @@ export function CreateStreamModal() {
                         value={field.value || 0}
                         onChange={field.onChange}
                         error={fieldState.error}
+                        maxBalance={formattedBalance}
+                        onMaxClick={() => field.onChange(Number(formattedBalance))}
                         disabled={isLoading}
                         helperText="Total project payment"
                       />
@@ -245,6 +268,20 @@ export function CreateStreamModal() {
                       description={`Need $${preview.total} • Vault has $${formattedBalance}`}
                       className="mb-4"
                     />
+                  )}
+
+                  {preview.finalPayout !== 0 && (
+                    <div className="border-t border-border pt-4 mb-4">
+                      <div className="flex flex-col">
+                        <div className="text-xs font-bold mb-1 font-mono">Final Payout</div>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Due to per-second streaming precision, a small remainder of{" "}
+                          <span className="font-mono font-bold">${preview.finalPayout}</span> will be paid with the last
+                          withdrawal to ensure the employee receives exactly{" "}
+                          <span className="font-mono font-bold">${preview.total}</span>.
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </PreviewBox>
               )}

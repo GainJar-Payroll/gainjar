@@ -15,12 +15,14 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
     contractName: "GainJar",
     functionName: "getActiveEmployees",
     args: [address],
+    watch: true,
   });
 
   const { data: allEmployees, isLoading: loadingAll } = useScaffoldReadContract({
     contractName: "GainJar",
     functionName: "getAllEmployees",
     args: [address],
+    watch: true,
   });
 
   const isLoading = loadingActive || loadingAll;
