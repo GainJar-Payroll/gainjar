@@ -1,5 +1,5 @@
 import { Check, Info } from "lucide-react";
-import CreateStreamModal from "~~/components/dashboard/create-stream-modal";
+import { CreateStreamModal } from "~~/components/dashboard/create-stream-modal";
 import { DepositModal } from "~~/components/dashboard/deposit-modal";
 import StreamsOverview from "~~/components/dashboard/streams-overview";
 import VaultMetrics from "~~/components/dashboard/vault-metrics";

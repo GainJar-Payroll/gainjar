@@ -2,10 +2,10 @@ import { IBM_Plex_Mono, IBM_Plex_Serif, Inter } from "next/font/google";
 import "@rainbow-me/rainbowkit/styles.css";
 import "@scaffold-ui/components/styles.css";
 import Navbar from "~~/components/navbar";
+import { Toaster } from "~~/components/ui/sonner";
 import { RootProvider } from "~~/provider/root-provider";
 import "~~/styles/globals.css";
 import { getMetadata } from "~~/utils/scaffold-eth/getMetadata";
-import { Toaster } from "~~/components/ui/sonner"
 
 const inter = Inter({
   subsets: ["latin"],
@@ -39,7 +39,7 @@ const ScaffoldEthApp = ({ children }: { children: React.ReactNode }) => {
         <RootProvider>
           <Navbar />
           {children}
-          {/* <Toaster /> */}
+          <Toaster />
         </RootProvider>
       </body>
     </html>

@@ -1,15 +1,15 @@
 [arbitrum-sepolia]
-endpoint_url = "${ARB_SEPOLIA_ENDPOINT_URL}"
+endpoint_url = "${ARB_SEPOLIA_RPC_URL}"
 
 [arbitrum-sepolia.address]
 usdc = "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d"
-gainjar = "0x66A092B1388d8A60C8A7B074D2939c1D3287688a"
+gainjar = "0xF3D24c89bdd5753710E68b9d576210Fce35bF43B"
 
 [arbitrum-sepolia.bool]
 with_usdc_mock = false
 
 [anvil]
-endpoint_url = "${ARB_SEPOLIA_ENDPOINT_URL}"
+endpoint_url = "localhost:8545"
 
 [anvil.address]
 usdc = "0x0000000000000000000000000000000000000000"
