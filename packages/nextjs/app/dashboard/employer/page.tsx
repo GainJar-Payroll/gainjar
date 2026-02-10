@@ -1,4 +1,3 @@
-import { Check, Info } from "lucide-react";
 import { CreateStreamModal } from "~~/components/dashboard/create-stream-modal";
 import { DepositModal } from "~~/components/dashboard/deposit-modal";
 import StreamsOverview from "~~/components/dashboard/streams-overview";
@@ -15,10 +14,6 @@ const page = () => {
             <h1 className="text-5xl sm:text-6xl font-heading font-bold text-foreground mb-2">Employer Dashboard</h1>
             <p className="font-mono text-muted-foreground text-sm">Manage your payroll streams and vault health</p>
           </div>
-          <div className="flex justify-center gap-4">
-            <DepositModal />
-            <CreateStreamModal />
-          </div>
         </div>
 
         {/* Grid Layout */}
@@ -30,29 +25,13 @@ const page = () => {
           </div>
 
           {/* Right Column */}
-          <div className="grid grid-rows-2 gap-4">
-            {/* Quick Alerts */}
+          <div className="grid gap-4">
+            {/* Actions */}
             <div className="bg-card border border-border p-6">
-              <h3 className="text-lg font-heading font-bold text-card-foreground mb-4">Quick Alerts</h3>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-emerald-50 dark:bg-emerald-950/30 border-l-4 border-emerald-500 rounded-r">
-                  <span className="text-xl flex-shrink-0">
-                    <Check className="text-emerald-700" />
-                  </span>
-                  <div className="text-sm space-y-0.5">
-                    <p className="font-mono font-semibold text-emerald-900 dark:text-emerald-200">Active Streams</p>
-                    <p className="text-emerald-700 dark:text-emerald-300 text-xs font-mono">Running normally</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 rounded-r">
-                  <span className="text-xl flex-shrink-0">
-                    <Info className="text-blue-700" />
-                  </span>
-                  <div className="text-sm space-y-0.5">
-                    <p className="font-mono font-semibold text-blue-900 dark:text-blue-200">Min Coverage</p>
-                    <p className="text-blue-700 dark:text-blue-300 text-xs font-mono">7 days required</p>
-                  </div>
-                </div>
+              <h3 className="text-lg font-heading font-bold text-card-foreground mb-4">Actions</h3>
+              <div className="flex flex-col gap-2">
+                <DepositModal />
+                <CreateStreamModal />
               </div>
             </div>
 
