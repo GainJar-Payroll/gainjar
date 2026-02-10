@@ -6,6 +6,7 @@ import { maxUint256 } from "viem";
 import { useAccount } from "wagmi";
 import { ONE_DAY } from "~~/const";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
+import { cn } from "~~/lib/utils";
 import { EVaultStatus, VaultStatusLabel } from "~~/types/type";
 
 export default function VaultMetrics() {
@@ -117,11 +118,13 @@ export default function VaultMetrics() {
 
   return (
     <div className={`relative bg-card border p-6 transition-all duration-300 ${styles.border} ${styles.bg}`}>
-      {isFetching ? (
-        <div className="bg-primary text-primary-foreground p-2 size-8 absolute top-5 right-5 flex justify-center items-center">
-          <RefreshCw className="animate-spin text-base" />
-        </div>
-      ) : null}
+      <Button size="icon" onClick={() => refetch()} className="absolute top-5 right-5">
+        <RefreshCw
+          className={cn("text-base", {
+            "animate-spin": isFetching,
+          })}
+        />
+      </Button>
       {/* Main Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         {/* Left Column - Primary Info */}

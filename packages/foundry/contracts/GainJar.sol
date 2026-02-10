@@ -43,12 +43,16 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
   );
   event FeeUpdated(uint256 _oldFee, uint256 _newFee);
   event FeeClaimed(address indexed _owner, uint256 _amount);
+  event SurplusWithdrawn(address indexed _employer, uint256 _amount);
 
   // ==============
   // Errors
   // ==============
 
   error GainJar__DepositCantBeZero();
+
+  error GainJar__InvalidWithdrawAmount();
+  error GainJar__WithdrawLeavesVaultUnsafe(uint256 requested, uint256 minRequired);
 
   error GainJar__InvalidAddress();
 
@@ -234,11 +238,52 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
       s_employerList.push(_msgSender());
     }
 
+    s_employerExist[_msgSender()] = true;
+
     i_paymentToken.transferFrom(_msgSender(), address(this), _amount);
 
     s_vaultBalances[_msgSender()] += _amount;
 
     emit FundDeposited(_msgSender(), _amount);
+  }
+
+  /**
+   * @notice Allow employer to withdraw surplus funds that are not required to maintain
+   * minimum coverage for active streams. This withdrawal is fee-free.
+   * @param _amount Amount to withdraw
+   */
+  function withdrawSurplus(uint256 _amount) external nonReentrant {
+    if (_amount == 0) revert GainJar__InvalidWithdrawAmount();
+
+    uint256 vaultBalance = s_vaultBalances[_msgSender()];
+    if (_amount > vaultBalance) revert GainJar__InsufficientEmployerVault(_msgSender());
+
+    uint256 currentFlowRate = getTotalFlowRate(_msgSender());
+
+    // If there is an active flow, ensure withdrawal won't put vault into CRITICAL/EMERGENCY
+    if (currentFlowRate > 0) {
+      uint256 newBalance = vaultBalance - _amount;
+
+      // Ensure minimum required balance for MIN_COVERAGE_DAYS_SECOND remains
+      uint256 minRequiredBalance = currentFlowRate * MIN_COVERAGE_DAYS_SECOND;
+      if (newBalance < minRequiredBalance) {
+        revert GainJar__WithdrawLeavesVaultUnsafe(_amount, minRequiredBalance);
+      }
+
+      // Additionally, disallow leaving vault in CRITICAL or EMERGENCY status
+      uint256 secondsUntilEmpty = newBalance / currentFlowRate;
+      uint256 daysRemaining = secondsUntilEmpty / 1 days;
+      if (daysRemaining < 3) {
+        revert GainJar__WithdrawLeavesVaultUnsafe(_amount, minRequiredBalance);
+      }
+    }
+
+    // Safe to withdraw
+    s_vaultBalances[_msgSender()] = vaultBalance - _amount;
+
+    i_paymentToken.transfer(_msgSender(), _amount);
+
+    emit SurplusWithdrawn(_msgSender(), _amount);
   }
 
   /**

@@ -15,12 +15,14 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
     contractName: "GainJar",
     functionName: "getActiveEmployees",
     args: [address],
+    watch: true,
   });
 
   const { data: allEmployees, isLoading: loadingAll } = useScaffoldReadContract({
     contractName: "GainJar",
     functionName: "getAllEmployees",
     args: [address],
+    watch: true,
   });
 
   const isLoading = loadingActive || loadingAll;
@@ -28,10 +30,10 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
   if (isLoading) {
     return (
       <div className="bg-card border border-border  p-6 animate-pulse">
-        <div className="h-4 bg-muted rounded w-1/4 mb-4"></div>
+        <div className="h-4 bg-muted w-1/4 mb-4"></div>
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-12 bg-muted rounded"></div>
+            <div key={i} className="h-12 bg-muted"></div>
           ))}
         </div>
       </div>
@@ -52,7 +54,7 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
       </div>
 
       {allCount === 0 ? (
-        <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 rounded-r">
+        <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border-l-4 border-blue-500 -r">
           <p className="text-sm font-mono text-blue-900 dark:text-blue-200">
             No payment streams yet. Create your first stream to start paying employees!
           </p>
@@ -61,15 +63,15 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
         <div className="space-y-4">
           {/* Quick Stats */}
           <div className="grid grid-cols-3 gap-3 pb-4 border-b border-border">
-            <div className="text-center p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 rounded-lg">
+            <div className="text-center p-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/50 -lg">
               <p className="text-xs font-mono text-muted-foreground mb-1">Active</p>
               <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{activeCount}</p>
             </div>
-            <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-lg">
+            <div className="text-center p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 -lg">
               <p className="text-xs font-mono text-muted-foreground mb-1">Paused</p>
               <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{pausedCount}</p>
             </div>
-            <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-lg">
+            <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 -lg">
               <p className="text-xs font-mono text-muted-foreground mb-1">Total</p>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{allCount}</p>
             </div>
@@ -84,7 +86,7 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
                   activeEmployees.slice(0, limit).map((employee, idx) => (
                     <div
                       key={idx}
-                      className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border-l-4 border-emerald-500 rounded-r flex items-center justify-between transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                      className="p-3 bg-emerald-50/50 dark:bg-emerald-950/20 border-l-4 border-emerald-500 -r flex items-center justify-between transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
@@ -94,7 +96,7 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
                             : "Employee"}
                         </span>
                       </div>
-                      <span className="text-xs font-mono bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded flex-shrink-0">
+                      <span className="text-xs font-mono bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 px-2 py-1 flex-shrink-0">
                         Active
                       </span>
                     </div>
@@ -115,7 +117,7 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
                     .map((employee, idx) => (
                       <div
                         key={idx}
-                        className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-amber-500 rounded-r flex items-center justify-between transition-colors hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                        className="p-3 bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-amber-500 -r flex items-center justify-between transition-colors hover:bg-amber-50 dark:hover:bg-amber-950/30"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
@@ -125,7 +127,7 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
                               : "Employee"}
                           </span>
                         </div>
-                        <span className="text-xs font-mono bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-1 rounded flex-shrink-0">
+                        <span className="text-xs font-mono bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-1 flex-shrink-0">
                           Paused
                         </span>
                       </div>
