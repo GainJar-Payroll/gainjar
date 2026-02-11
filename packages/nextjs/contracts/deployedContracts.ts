@@ -602,6 +602,44 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "getAvailableBalance",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getEmployeeList",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "address[]",
+              internalType: "address[]",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
           name: "getEmployerList",
           inputs: [],
           outputs: [
@@ -1910,7 +1948,7 @@ const deployedContracts = {
       deployedOnBlock: 239687204,
     },
     GainJar: {
-      address: "0xf3d24c89bdd5753710e68b9d576210fce35bf43b",
+      address: "0xbe6e68fe27e1aa849d3284930a3b2d4847215c24",
       abi: [
         {
           type: "constructor",
@@ -2138,6 +2176,44 @@ const deployedContracts = {
         {
           type: "function",
           name: "getAllEmployees",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "address[]",
+              internalType: "address[]",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getAvailableBalance",
+          inputs: [
+            {
+              name: "_employer",
+              type: "address",
+              internalType: "address",
+            },
+          ],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getEmployeeList",
           inputs: [
             {
               name: "_employer",
@@ -3110,7 +3186,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 241381940,
+      deployedOnBlock: 241839656,
     },
   },
 } as const;
