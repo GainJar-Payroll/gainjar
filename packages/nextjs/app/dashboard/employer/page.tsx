@@ -36,9 +36,11 @@ const page = () => {
             </div>
 
             {/* Streams Overview */}
-            <StreamsOverview limit={3} />
+            <StreamsOverview limit={2} />
           </div>
         </div>
+
+        <div className="bg-card border border-border p-6 mb-8">Hello</div>
 
         {/* How GainJar Works */}
         <div className="bg-card border border-border  p-6 mb-8">
