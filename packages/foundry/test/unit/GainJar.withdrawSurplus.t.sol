@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { BaseTest } from "../BaseTest.t.sol";
-import { GainJar } from "../../contracts/GainJar.sol";
+import {BaseTest} from "../BaseTest.t.sol";
+import {GainJar} from "../../contracts/GainJar.sol";
 
 contract GainJarWithdrawSurplusTest is BaseTest {
   function setUp() public {
