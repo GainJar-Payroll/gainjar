@@ -129,4 +129,25 @@ contract GainJarWithdrawTest is BaseTest {
     (,,,,,,,, bool isActive,) = gainjar.getStreamInfo(employer, employee);
     assertFalse(isActive, "stream ended");
   }
+
+  // Final payout rounding should be included in final withdraw for finite streams
+  function test_FiniteStream_FinalPayoutIncluded() public {
+    uint256 total = 100 * 1e6;
+    uint256 duration = 3; // short duration to force remainder finalPayout
+
+    vm.prank(employer);
+    gainjar.deposit((total / duration) * MIN_COVERAGE_DAYS);
+    vm.prank(employer);
+    gainjar.createFiniteStream(employee, total, duration);
+
+    // Warp past end and withdraw
+    vm.warp(block.timestamp + duration + 1);
+    vm.prank(employee);
+    gainjar.withdraw(employer);
+
+    (,,,,,, uint256 totalWithdrawn,, bool isActive,) = gainjar.getStreamInfo(employer, employee);
+
+    assertFalse(isActive, "stream ended");
+    assertEq(totalWithdrawn, total, "final payout included in totalWithdrawn");
+  }
 }
