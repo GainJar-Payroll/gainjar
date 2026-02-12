@@ -187,16 +187,15 @@ export default function VaultMetrics() {
           <div>
             <p className="text-sm font-mono text-muted-foreground mb-2">Available Balance</p>
             <h2 className={cn("text-4xl font-serif font-bold", styles.text)}>
-              <NumberTicker
-                value={Number(formatUnits(liveBalance, 6))}
-                direction="down"
-                decimalPlaces={2}
-                continuous={true}
-                prefix="$"
-                className={styles.text}
-              />
+              <NumberTicker value={formatUnits(liveBalance, 6)} decimalPlaces={2} prefix="$" className={styles.text} />
             </h2>
-            <p className="text-xs font-mono text-muted-foreground mt-1">{Number(liveBalance).toLocaleString()} wei</p>
+            <NumberTicker
+              value={liveBalance}
+              decimalPlaces={0}
+              suffix=" wei"
+              className={"text-xs font-mono text-muted-foreground mt-1"}
+            />
+            {/*<p className="text-xs font-mono text-muted-foreground mt-1">{Number(liveBalance).toLocaleString()} wei</p>*/}
           </div>
 
           {/* Coverage Bar */}

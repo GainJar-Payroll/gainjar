@@ -39,7 +39,7 @@ export default function VaultRecommendations() {
       `Your vault is in WARNING status (7-29 days remaining).`,
       `Consider depositing additional funds to avoid CRITICAL status.`,
       `Current daily burn rate: $${(flowRateInUSDC * 86400).toFixed(2)}/day`,
-      `To reach HEALTHY status (30+ days), deposit ~$${Math.ceil(flowRateInUSDC * 86400 * 20).toLocaleString()} USD.`,
+      `To reach HEALTHY status (30+ days), deposit ~$${Math.ceil(flowRateInUSDC * 86400 * 20).toLocaleString()} USDC.`,
     ],
     [EVaultStatus.CRITICAL]: [
       `⚠️ Your vault is in CRITICAL status (3-6 days remaining)!`,

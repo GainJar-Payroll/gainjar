@@ -1,56 +1,45 @@
 "use client";
 
-import { ComponentPropsWithoutRef, useEffect, useRef } from "react";
+import { ComponentPropsWithoutRef, useEffect, useRef, useState } from "react";
 import { useMotionValue, useSpring } from "motion/react";
 import { cn } from "~~/lib/utils";
 
 interface NumberTickerProps extends ComponentPropsWithoutRef<"span"> {
-  value: number;
-  direction?: "up" | "down";
+  value: bigint | string;
   decimalPlaces?: number;
-  // Add continuous mode for live streaming
   continuous?: boolean;
-  // Custom formatting
   prefix?: string;
   suffix?: string;
-  // From 0 to value
-  instantOnMount?: boolean;
 }
 
 export function NumberTicker({
   value,
   className,
   decimalPlaces = 0,
-  continuous = false,
   prefix = "",
   suffix = "",
-  instantOnMount = false,
   ...props
 }: NumberTickerProps) {
   const ref = useRef<HTMLSpanElement>(null);
-  const hasMounted = useRef(false);
+  const [mounted, setMounted] = useState(false);
 
-  // IMPORTANT: init with 0
-  const motionValue = useMotionValue(0);
+  const motionValue = useMotionValue(Number(value));
 
   const springValue = useSpring(motionValue, {
-    damping: continuous ? 80 : 60,
-    stiffness: continuous ? 120 : 100,
+    damping: 80,
+    stiffness: 120,
   });
 
   useEffect(() => {
-    if (!hasMounted.current) {
-      hasMounted.current = true;
-
-      if (instantOnMount) {
-        // Direct set without visible animation
-        motionValue.jump(value);
-        return;
-      }
+    if (!mounted) {
+      setMounted(true);
+      // Jump to initial value without animation
+      motionValue.jump(Number(value));
+    } else {
+      // Animate to new value
+      motionValue.set(Number(value));
     }
-
-    motionValue.set(value);
-  }, [value, motionValue, instantOnMount]);
+  }, [value, mounted, motionValue]);
 
   useEffect(() => {
     const unsubscribe = springValue.on("change", latest => {

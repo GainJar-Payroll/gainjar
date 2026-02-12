@@ -17,7 +17,6 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~~/compone
 import { Field, FieldError, FieldGroup, FieldLabel } from "~~/components/ui/field";
 import { Label } from "~~/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~~/components/ui/radio-group";
-import { ONE_DAY } from "~~/const";
 import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useTransactionFlow } from "~~/hooks/useTransactionFlow";
 
@@ -122,11 +121,11 @@ export function CreateStreamModal() {
     const maxFlowRate = maxAdditionalFlowRate;
 
     return {
-      monthly: isMonthly ? amount.toFixed(2) : ((amount / duration) * 30).toFixed(2),
+      monthly: isMonthly ? amount.toFixed(6) : ((amount / duration) * 30).toFixed(6),
 
       daily: daily.toFixed(6),
       hourly: hourly.toFixed(6),
-      perSecond: perSecondUI,
+      perSecond: perSecondUI.toFixed(6),
 
       total: amount.toFixed(2),
 
@@ -140,7 +139,7 @@ export function CreateStreamModal() {
     };
   }, [watchType, watchMonthlySalary, watchTotalPayment, watchDuration, maxAdditionalFlowRate]);
 
-  const hasEnoughBalance = preview ? vaultBalance >= parseUnits(preview.total, 6) : false;
+  // const hasEnoughBalance = preview ? vaultBalance >= parseUnits(preview.total, 6) : false;
 
   React.useEffect(() => {
     if (!open) {
@@ -346,14 +345,14 @@ export function CreateStreamModal() {
                     </div>
                   }
                 >
-                  {!hasEnoughBalance && (
+                  {/*{!hasEnoughBalance && (
                     <TransactionAlert
                       type="error"
                       title="Insufficient Vault Balance"
                       description={`Need $${preview.total} • Vault has $${formattedBalance}`}
                       className="mb-4"
                     />
-                  )}
+                  )}*/}
 
                   {preview.maxAdditionalFlowRateExceeded && (
                     <TransactionAlert
@@ -399,7 +398,7 @@ export function CreateStreamModal() {
               type="submit"
               form="form"
               className="w-full uppercase tracking-wider"
-              disabled={isLoading || !hasEnoughBalance || preview?.maxAdditionalFlowRateExceeded}
+              disabled={isLoading || preview?.maxAdditionalFlowRateExceeded}
             >
               {step === "idle" && "Create Stream"}
               {step === "creating" && "Creating..."}
