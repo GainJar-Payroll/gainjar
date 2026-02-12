@@ -253,7 +253,7 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
     function withdrawSurplus(uint256 _amount) external nonReentrant {
         if (_amount == 0) revert GainJar__InvalidWithdrawAmount();
 
-        uint256 vaultBalance = s_vaultBalances[_msgSender()];
+        uint256 vaultBalance = getAvailableBalance(_msgSender());
         if (_amount > vaultBalance) revert GainJar__InsufficientEmployerVault(_msgSender());
 
         uint256 currentFlowRate = getTotalFlowRate(_msgSender());
@@ -367,7 +367,8 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
         uint256 newTotalFlowRate = currentTotalFlowRate - oldRatePerSecond + newRatePerSecond;
         uint256 minRequiredBalance = newTotalFlowRate * MIN_COVERAGE_DAYS_SECOND;
 
-        if (s_vaultBalances[_msgSender()] < minRequiredBalance) {
+        uint256 availableBalance = getAvailableBalance(_msgSender());
+        if (availableBalance < minRequiredBalance) {
             revert GainJar__InsufficientEmployerVault(_msgSender());
         }
 
@@ -515,9 +516,10 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
      *
      * Flow:
      * 1. Check vault status is EMERGENCY
-     * 2. Check vault has enough for reward
-     * 3. Pause all active streams
-     * 4. Pay liquidator reward
+     * 2. Calculate total employee earnings
+     * 3. Calculate reward
+     * 4. Pay employee
+     * 5. Pay liquidator
      */
     function liquidate(address _employer) external nonReentrant {
         VaultStatus status = getVaultStatus(_employer);
@@ -533,11 +535,6 @@ contract GainJar is Context, ReentrancyGuard, Ownable {
         // Calculate rewards
         uint256 reward = _calculateLiquidationReward(totalEmployeeEarnings, status);
         uint256 vaultBalance = s_vaultBalances[_employer];
-
-        uint256 totalRequired = totalEmployeeEarnings + reward;
-        if (vaultBalance < totalRequired) {
-            revert GainJar__InsufficientVaultForLiquidation(vaultBalance, totalRequired);
-        }
 
         uint256 actualReward = _calculateActualReward(vaultBalance, totalEmployeeEarnings, reward);
 
