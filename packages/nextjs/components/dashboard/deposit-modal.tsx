@@ -35,7 +35,9 @@ export function DepositModal() {
     defaultValues: { amount: 0 },
   });
 
-  const { data: gainjar } = useDeployedContractInfo({ contractName: "GainJar" });
+  const { data: gainjar } = useDeployedContractInfo({
+    contractName: "GainJar",
+  });
 
   const { data: usdcBalance } = useScaffoldReadContract({
     contractName: "USDC",
@@ -49,8 +51,12 @@ export function DepositModal() {
     args: [address, gainjar?.address as `0x${string}`],
   });
 
-  const { writeContractAsync: writeUSDC } = useScaffoldWriteContract({ contractName: "USDC" });
-  const { writeContractAsync: writeGainJar } = useScaffoldWriteContract({ contractName: "GainJar" });
+  const { writeContractAsync: writeUSDC } = useScaffoldWriteContract({
+    contractName: "USDC",
+  });
+  const { writeContractAsync: writeGainJar } = useScaffoldWriteContract({
+    contractName: "GainJar",
+  });
 
   const watchAmount = form.watch("amount");
   const formattedBalance = formatUnits(usdcBalance || 0n, 6);
@@ -114,8 +120,16 @@ export function DepositModal() {
                 render={({ field, fieldState }) => (
                   <AmountInput
                     label="Amount USDC"
-                    value={field.value}
-                    onChange={field.onChange}
+                    value={field.value === 0 ? "" : field.value}
+                    onChange={e => {
+                      const val = e.target ? e.target.value : e;
+                      if (val === "") {
+                        field.onChange("");
+                        return;
+                      }
+                      const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
+                      field.onChange(cleanVal);
+                    }}
                     error={fieldState.error}
                     maxBalance={formattedBalance}
                     onMaxClick={() => field.onChange(Number(formattedBalance))}

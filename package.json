@@ -1,12 +1,15 @@
 {
   "name": "se-2",
   "version": "0.0.1",
-  "private": true,
-  "workspaces": {
-    "packages": [
-      "packages/*"
-    ]
+  "devDependencies": {
+    "husky": "~9.1.6",
+    "lint-staged": "~13.2.2"
   },
+  "engines": {
+    "node": ">=20.18.3"
+  },
+  "packageManager": "bun@3.2.3",
+  "private": true,
   "scripts": {
     "account": "bun foundry:account",
     "account:generate": "bun foundry:generate",
@@ -49,15 +52,9 @@
     "vercel:yolo": "bun --cwd packages/nextjs vercel:yolo",
     "verify": "bun foundry:verify"
   },
-  "devDependencies": {
-    "husky": "~9.1.6",
-    "lint-staged": "~13.2.2"
-  },
-  "packageManager": "bun@3.2.3",
-  "engines": {
-    "node": ">=20.18.3"
-  },
-  "dependencies": {
-    "@radix-ui/react-switch": "^1.2.6"
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ]
   }
 }

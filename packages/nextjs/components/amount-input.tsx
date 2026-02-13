@@ -5,7 +5,7 @@ import { Input } from "~~/components/ui/input";
 interface AmountInputProps {
   label: string;
   value: number | string;
-  onChange: (value: number) => void;
+  onChange: (value: React.ChangeEvent<HTMLInputElement>) => void;
   error?: any;
   maxBalance?: string;
   onMaxClick?: () => void;
@@ -44,7 +44,7 @@ export function AmountInput({
       </div>
       <Input
         value={value}
-        onChange={e => onChange(Number(e.target.value))}
+        onChange={e => onChange(e)}
         type="number"
         step="0.000001"
         min="0"

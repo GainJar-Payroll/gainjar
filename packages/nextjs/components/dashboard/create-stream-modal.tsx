@@ -30,14 +30,26 @@ const formSchema = z
   })
   .superRefine((data, ctx) => {
     if (data.streamType === "monthly" && (!data.monthlySalary || data.monthlySalary <= 0)) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required", path: ["monthlySalary"] });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Required",
+        path: ["monthlySalary"],
+      });
     }
     if (data.streamType === "project") {
       if (!data.totalPayment || data.totalPayment <= 0) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required", path: ["totalPayment"] });
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Required",
+          path: ["totalPayment"],
+        });
       }
       if (!data.projectDuration || data.projectDuration <= 0) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Required", path: ["projectDuration"] });
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Required",
+          path: ["projectDuration"],
+        });
       }
     }
   });
@@ -55,19 +67,31 @@ export function CreateStreamModal() {
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    defaultValues: { receiver: "", streamType: "monthly", monthlySalary: 0, totalPayment: 0, projectDuration: 14 },
+    defaultValues: {
+      receiver: "",
+      streamType: "monthly",
+      monthlySalary: 0,
+      totalPayment: 0,
+      projectDuration: 14,
+    },
   });
 
   const { data: vaultData } = useScaffoldReadContract({
     contractName: "GainJar",
     functionName: "getVaultHealth",
     args: [address],
+    watch: true,
   });
 
   const vaultBalance = vaultData ? (vaultData as readonly [bigint, bigint, bigint, number, boolean, bigint])[0] : 0n;
+  const maxAdditionalFlowRate = vaultData
+    ? (vaultData as readonly [bigint, bigint, bigint, number, boolean, bigint])[5]
+    : 0n;
   const formattedBalance = formatUnits(vaultBalance, 6);
 
-  const { writeContractAsync } = useScaffoldWriteContract({ contractName: "GainJar" });
+  const { writeContractAsync } = useScaffoldWriteContract({
+    contractName: "GainJar",
+  });
 
   const watchType = form.watch("streamType");
   const watchMonthlySalary = form.watch("monthlySalary");
@@ -76,27 +100,46 @@ export function CreateStreamModal() {
 
   const preview = React.useMemo(() => {
     const isMonthly = watchType === "monthly";
-    const amount = isMonthly ? Number(watchMonthlySalary) : Number(watchTotalPayment);
+
+    const amountStr = isMonthly ? watchMonthlySalary : watchTotalPayment;
     const duration = Number(watchDuration) || 1;
 
-    if (amount === 0) return null;
+    if (!amountStr || Number(amountStr) === 0) return null;
+
+    const amount = Number(amountStr);
+
+    const rawAmount = parseUnits(String(amountStr), 6); // token 6 decimals
+
+    const durationInSeconds = BigInt(duration * 24 * 60 * 60);
+
+    const upcomingFlowRate = isMonthly ? rawAmount / BigInt(30 * 24 * 60 * 60) : rawAmount / durationInSeconds;
 
     const daily = isMonthly ? amount / 30 : amount / duration;
     const hourly = daily / 24;
-    const perSecond = isMonthly ? amount / (30 * 24 * 60 * 60) : amount / (duration * 24 * 60 * 60);
+    const perSecondUI = Number(formatUnits(upcomingFlowRate, 6));
+
+    const maxFlowRate = maxAdditionalFlowRate;
 
     return {
-      monthly: isMonthly ? amount.toFixed(2) : ((amount / duration) * 30).toFixed(2),
-      daily: daily.toFixed(2),
-      hourly: hourly.toFixed(4),
-      perSecond: perSecond.toFixed(8),
-      total: amount.toFixed(2),
-      duration: isMonthly ? "Ongoing" : `${duration} days`,
-      finalPayout: isMonthly ? 0 : ((amount * 1e6) % (duration * 24 * 60 * 60)) / 1e6,
-    };
-  }, [watchType, watchMonthlySalary, watchTotalPayment, watchDuration]);
+      monthly: isMonthly ? amount.toFixed(6) : ((amount / duration) * 30).toFixed(6),
 
-  const hasEnoughBalance = preview ? vaultBalance >= parseUnits(preview.total, 6) : false;
+      daily: daily.toFixed(6),
+      hourly: hourly.toFixed(6),
+      perSecond: perSecondUI.toFixed(6),
+
+      total: amount.toFixed(2),
+
+      duration: isMonthly ? "Ongoing" : `${duration} days`,
+
+      finalPayout: isMonthly ? 0 : Number(formatUnits(rawAmount % durationInSeconds, 6)),
+
+      maxAllowedFlowRate: Number(formatUnits(maxFlowRate, 6)),
+
+      maxAdditionalFlowRateExceeded: upcomingFlowRate > maxFlowRate,
+    };
+  }, [watchType, watchMonthlySalary, watchTotalPayment, watchDuration, maxAdditionalFlowRate]);
+
+  // const hasEnoughBalance = preview ? vaultBalance >= parseUnits(preview.total, 6) : false;
 
   React.useEffect(() => {
     if (!open) {
@@ -193,8 +236,16 @@ export function CreateStreamModal() {
                   render={({ field, fieldState }) => (
                     <AmountInput
                       label="Monthly Salary"
-                      value={field.value || 0}
-                      onChange={field.onChange}
+                      value={field?.value === 0 ? "" : (field?.value ?? 0)}
+                      onChange={e => {
+                        const val = e.target ? e.target.value : e;
+                        if (val === "") {
+                          field.onChange("");
+                          return;
+                        }
+                        const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
+                        field.onChange(cleanVal);
+                      }}
                       error={fieldState.error}
                       maxBalance={formattedBalance}
                       onMaxClick={() => field.onChange(Number(formattedBalance))}
@@ -211,8 +262,16 @@ export function CreateStreamModal() {
                     render={({ field, fieldState }) => (
                       <AmountInput
                         label="Total Payment"
-                        value={field.value || 0}
-                        onChange={field.onChange}
+                        value={field?.value === 0 ? "" : (field?.value ?? 0)}
+                        onChange={e => {
+                          const val = e.target ? e.target.value : e;
+                          if (val === "") {
+                            field.onChange("");
+                            return;
+                          }
+                          const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
+                          field.onChange(cleanVal);
+                        }}
                         error={fieldState.error}
                         maxBalance={formattedBalance}
                         onMaxClick={() => field.onChange(Number(formattedBalance))}
@@ -228,7 +287,15 @@ export function CreateStreamModal() {
                       <AmountInput
                         label="Duration (Days)"
                         value={field.value || 0}
-                        onChange={field.onChange}
+                        onChange={e => {
+                          const val = e.target ? e.target.value : e;
+                          if (val === "") {
+                            field.onChange("");
+                            return;
+                          }
+                          const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
+                          field.onChange(cleanVal);
+                        }}
                         error={fieldState.error}
                         disabled={isLoading}
                         helperText="Stream ends automatically"
@@ -243,10 +310,27 @@ export function CreateStreamModal() {
                 <PreviewBox
                   title={watchType === "monthly" ? "Monthly Salary" : "Project Payment"}
                   items={[
-                    { label: "Per Month", value: `$${preview.monthly}`, highlight: true },
-                    { label: "Per Day", value: `$${preview.daily}` },
-                    { label: "Per Hour", value: `$${preview.hourly}`, small: true },
-                    { label: "Per Second", value: `$${preview.perSecond}`, small: true },
+                    {
+                      label: "Per Month",
+                      value: `$${preview.monthly}`,
+                      // highlight: true,
+                      small: true,
+                    },
+                    {
+                      label: "Per Day",
+                      value: `$${preview.daily}`,
+                      small: true,
+                    },
+                    {
+                      label: "Per Hour",
+                      value: `$${preview.hourly}`,
+                      small: true,
+                    },
+                    {
+                      label: "Per Second",
+                      value: `$${preview.perSecond}`,
+                      small: true,
+                    },
                   ]}
                   footer={
                     <div className="space-y-2">
@@ -261,11 +345,20 @@ export function CreateStreamModal() {
                     </div>
                   }
                 >
-                  {!hasEnoughBalance && (
+                  {/*{!hasEnoughBalance && (
                     <TransactionAlert
                       type="error"
                       title="Insufficient Vault Balance"
                       description={`Need $${preview.total} • Vault has $${formattedBalance}`}
+                      className="mb-4"
+                    />
+                  )}*/}
+
+                  {preview.maxAdditionalFlowRateExceeded && (
+                    <TransactionAlert
+                      type="error"
+                      title="Flow Rate Exceeds Maximum Value"
+                      description={`The flow rate exceeds the maximum value allowed. Maximum allowed additional flow rate is $${preview.maxAllowedFlowRate}/s`}
                       className="mb-4"
                     />
                   )}
@@ -305,7 +398,7 @@ export function CreateStreamModal() {
               type="submit"
               form="form"
               className="w-full uppercase tracking-wider"
-              disabled={isLoading || !hasEnoughBalance}
+              disabled={isLoading || preview?.maxAdditionalFlowRateExceeded}
             >
               {step === "idle" && "Create Stream"}
               {step === "creating" && "Creating..."}
