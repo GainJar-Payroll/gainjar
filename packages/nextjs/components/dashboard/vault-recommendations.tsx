@@ -108,7 +108,7 @@ export default function VaultRecommendations() {
   const styles = getStatusStyles();
 
   return (
-    <div className={`border  p-6 transition-all duration-300 ${styles.border} ${styles.bg}`}>
+    <div className={`border p-6 transition-all duration-300 ${styles.border} ${styles.bg}`}>
       <div className="flex items-center gap-2 mb-4">
         <Lightbulb className={`h-5 w-5 ${styles.icon}`} />
         <h3 className={`text-lg font-serif font-bold ${styles.text}`}>Recommendations</h3>

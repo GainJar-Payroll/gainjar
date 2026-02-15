@@ -2,13 +2,19 @@
 
 import { useEffect, useState } from "react";
 
-export function useLiveBalance(initialBalance: bigint, flowRate: bigint): bigint {
+export function useLiveBalance(
+  initialBalance: bigint,
+  flowRate: bigint,
+  increment: boolean = false,
+  isActive: boolean = true,
+): bigint {
   const [liveBalance, setLiveBalance] = useState(initialBalance);
 
   useEffect(() => {
     // Reset when initial balance changes
     setLiveBalance(initialBalance);
 
+    if (!isActive) return;
     // If no flow, no need to stream
     if (flowRate === 0n) return;
 
@@ -23,7 +29,7 @@ export function useLiveBalance(initialBalance: bigint, flowRate: bigint): bigint
       const elapsed = BigInt(now - startTime);
       const streamed = flowRate * elapsed;
 
-      const newBalance = streamed >= startBalance ? 0n : startBalance - streamed;
+      const newBalance = streamed >= startBalance ? 0n : increment ? startBalance + streamed : startBalance - streamed;
       setLiveBalance(newBalance);
     };
 

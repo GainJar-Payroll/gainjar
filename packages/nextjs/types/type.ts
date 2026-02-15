@@ -5,6 +5,11 @@ export enum EVaultStatus {
   EMERGENCY = 3,
 }
 
+export enum EStreamType {
+  INFINITE = 0,
+  FINITE = 1,
+}
+
 export const VaultStatusLabel: Record<
   EVaultStatus,
   {

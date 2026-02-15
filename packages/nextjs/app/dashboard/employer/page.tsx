@@ -1,5 +1,6 @@
 import { CreateStreamModal } from "~~/components/dashboard/create-stream-modal";
 import { DepositModal } from "~~/components/dashboard/deposit-modal";
+import { StreamsList } from "~~/components/dashboard/streams-list";
 import StreamsOverview from "~~/components/dashboard/streams-overview";
 import VaultMetrics from "~~/components/dashboard/vault-metrics";
 import VaultRecommendations from "~~/components/dashboard/vault-recommendations";
@@ -40,10 +41,10 @@ const page = () => {
           </div>
         </div>
 
-        <div className="bg-card border border-border p-6 mb-8">Hello</div>
+        <StreamsList />
 
         {/* How GainJar Works */}
-        <div className="bg-card border border-border  p-6 mb-8">
+        <div className="bg-card border border-border p-6 mb-8">
           <h3 className="text-lg font-heading font-bold text-card-foreground mb-4">How GainJar Works</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="p-4 bg-accent/20  border-l-4 border-primary space-y-2">
