@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertCircle, Check } from "lucide-react";
+import { Skeleton } from "../ui/skeleton";
+import { Check } from "lucide-react";
 import { useAccount } from "wagmi";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
@@ -33,7 +34,7 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
         <div className="h-4 bg-muted w-1/4 mb-4"></div>
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-12 bg-muted"></div>
+            <Skeleton key={i} className="h-12 bg-muted"></Skeleton>
           ))}
         </div>
       </div>
@@ -45,7 +46,7 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
   const pausedCount = allCount - activeCount;
 
   return (
-    <div className="bg-card border border-border  p-6">
+    <div className="bg-card border border-border p-6">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-heading font-bold text-card-foreground">Streams Overview</h3>
         <div className="text-xs font-mono text-muted-foreground">
@@ -106,7 +107,7 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
           )}
 
           {/* Paused Streams */}
-          {pausedCount > 0 && (
+          {/* {pausedCount > 0 && (
             <div>
               <p className="text-xs font-mono text-muted-foreground mb-2">Paused Streams:</p>
               <div className="space-y-2">
@@ -134,7 +135,7 @@ export default function StreamsOverview({ limit = 5 }: StreamOverviewProps) {
                     ))}
               </div>
             </div>
-          )}
+          )} */}
 
           {allCount > limit && (
             <div className="pt-4 border-t border-border">

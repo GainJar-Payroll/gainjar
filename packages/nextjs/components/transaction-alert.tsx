@@ -1,3 +1,4 @@
+import { Info, OctagonX, TriangleAlert } from "lucide-react";
 import { cn } from "~~/lib/utils";
 
 interface TransactionAlertProps {
@@ -10,22 +11,22 @@ interface TransactionAlertProps {
 export function TransactionAlert({ type, title, description, className }: TransactionAlertProps) {
   const styles = {
     warning: {
-      bg: "bg-amber-50 dark:bg-amber-950/30",
+      bg: "bg-amber-50",
       border: "border-amber-500",
       text: "text-amber-900 dark:text-amber-200",
-      icon: "⚠️",
+      icon: <TriangleAlert size={18} className="inline" />,
     },
     error: {
       bg: "bg-destructive/10",
       border: "border-destructive",
       text: "text-destructive",
-      icon: "⚠️",
+      icon: <OctagonX size={18} className="inline" />,
     },
     info: {
       bg: "bg-muted/50",
       border: "border-muted-foreground",
       text: "text-muted-foreground",
-      icon: "ℹ️",
+      icon: <Info size={18} className="inline" />,
     },
   };
 
