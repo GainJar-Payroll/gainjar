@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Skeleton } from "../ui/skeleton";
 import { UpdateStreamModal } from "./update-stream-modal";
-import { Clock, DollarSign, TrendingUp, Wallet } from "lucide-react";
+import { Clock, DollarSign, Info, TrendingUp, Wallet } from "lucide-react";
 import { formatUnits } from "viem";
 import { NumberTicker } from "~~/components/number-ticker";
 import { Button } from "~~/components/ui/button";
@@ -18,11 +18,11 @@ type StreamInfoData = readonly [bigint, bigint, bigint, bigint, EStreamType, big
 interface EmployeeStreamCardProps {
   employer: string;
   employee: string;
+  mode?: "employer" | "employee";
 }
 
-export function EmployeeStreamCard({ employer, employee }: EmployeeStreamCardProps) {
+export function EmployeeStreamCard({ employer, employee, mode = "employer" }: EmployeeStreamCardProps) {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const { data } = useScaffoldReadContract({
     contractName: "GainJar",
@@ -32,9 +32,14 @@ export function EmployeeStreamCard({ employer, employee }: EmployeeStreamCardPro
 
   const { writeContractAsync } = useScaffoldWriteContract({ contractName: "GainJar" });
 
-  const { isLoading: streamPauseLoading, handleTransaction: handlePauseStreamTransaction } = useTransactionFlow({
-    successMessage: "Stream Paused!",
-    onSuccess: () => setTimeout(() => setShowUpdateModal(false), 2000),
+  const { isLoading: isPauseActivateLoading, handleTransaction: handlePauseActivateTransaction } = useTransactionFlow({
+    successMessage: "Success!",
+    onSuccess: () => {},
+  });
+
+  const { isLoading: isWithdrawLoading, handleTransaction: handleWithdrawTransaction } = useTransactionFlow({
+    successMessage: "Withdrawal Successful!",
+    onSuccess: () => {},
   });
 
   const streamInfo = data as StreamInfoData | undefined;
@@ -63,36 +68,35 @@ export function EmployeeStreamCard({ employer, employee }: EmployeeStreamCardPro
 
   // Amounts
   const totalWithdrawnUSDC = Number(formatUnits(totalWithdrawn, 6));
+  const availableToWithdrawUSDC = Number(formatUnits(withdrawableLive, 6));
 
   // Status
   const isInfinite = streamType === 0;
 
+  // Handlers
   const handlePauseActivate = async () => {
-    if (isProcessing) return;
-
-    try {
-      setIsProcessing(true);
-
+    await handlePauseActivateTransaction(async () => {
       if (isActive) {
-        await handlePauseStreamTransaction(async () => {
-          await writeContractAsync({
-            functionName: "pauseStream",
-            args: [employee as `0x${string}`],
-          });
+        await writeContractAsync({
+          functionName: "pauseStream",
+          args: [employee as `0x${string}`],
         });
       } else {
-        await handlePauseStreamTransaction(async () => {
-          await writeContractAsync({
-            functionName: "activateStream",
-            args: [employee as `0x${string}`],
-          });
+        await writeContractAsync({
+          functionName: "activateStream",
+          args: [employee as `0x${string}`],
         });
       }
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      setIsProcessing(false);
-    }
+    });
+  };
+
+  const handleWithdraw = async () => {
+    await handleWithdrawTransaction(async () => {
+      await writeContractAsync({
+        functionName: "withdraw",
+        args: [employer as `0x${string}`],
+      });
+    });
   };
 
   if (!streamInfo) {
@@ -149,8 +153,10 @@ export function EmployeeStreamCard({ employer, employee }: EmployeeStreamCardPro
                   <Wallet className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Employee</p>
-                  <p className="font-mono text-sm font-bold truncate">{employee}</p>
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                    {mode === "employer" ? "Employee" : "Employer"}
+                  </p>
+                  <p className="font-mono text-sm font-bold truncate">{mode === "employer" ? employee : employer}</p>
                 </div>
               </div>
             </div>
@@ -229,13 +235,13 @@ export function EmployeeStreamCard({ employer, employee }: EmployeeStreamCardPro
             {/* Stats Grid */}
             <div className="grid grid-cols-2 gap-3">
               {/* Withdrawn */}
-              <div className="bg-muted/30 border border-border  p-4">
+              <div className="bg-muted/30 border border-border p-4">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2">Withdrawn</p>
                 <p className="font-mono font-bold text-2xl text-foreground">${totalWithdrawnUSDC.toFixed(2)}</p>
               </div>
 
               {/* Available to Withdraw */}
-              <div className="bg-green-500/5 border border-green-500/20  p-4">
+              <div className="bg-green-500/5 border border-green-500/20 p-4">
                 <p className="text-[10px] uppercase tracking-wider text-green-600 dark:text-green-400 font-bold mb-2">
                   Available
                 </p>
@@ -246,56 +252,97 @@ export function EmployeeStreamCard({ employer, employee }: EmployeeStreamCardPro
             </div>
           </div>
 
-          {/* Finite Stream Timeline */}
-          {!isInfinite && (
-            <div className="bg-muted/20 border border-border  p-4">
-              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-3">
-                Stream Timeline
-              </p>
-              <div className="space-y-2 font-mono text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Start:</span>
-                  <span className="font-bold">{new Date(Number(startTime) * 1000).toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">End:</span>
-                  <span className="font-bold">{new Date(Number(endTime) * 1000).toLocaleDateString()}</span>
-                </div>
-                <div className="flex justify-between border-t border-border pt-2 mt-2">
-                  <span className="text-muted-foreground">Total Amount:</span>
-                  <span className="font-bold text-primary">${Number(formatUnits(totalAmount, 6)).toFixed(2)}</span>
+          {/* Fixed-height Info Section - ALWAYS RENDERED */}
+          <div className="h-[140px] overflow-hidden">
+            {!isInfinite ? (
+              // Finite Stream: Show Timeline
+              <div className="bg-muted/20 border border-border rounded-lg p-4 h-full flex flex-col justify-center">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-3">
+                  Stream Timeline
+                </p>
+                <div className="space-y-2 font-mono text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Start:</span>
+                    <span className="font-bold">{new Date(Number(startTime) * 1000).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">End:</span>
+                    <span className="font-bold">{new Date(Number(endTime) * 1000).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border pt-2 mt-2">
+                    <span className="text-muted-foreground">Total Amount:</span>
+                    <span className="font-bold text-primary">${Number(formatUnits(totalAmount, 6)).toFixed(2)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              // Infinite Stream: Show Stream Info
+              <div className="bg-muted/20 border border-border rounded-lg p-4 h-full flex flex-col justify-center">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-3 flex items-center gap-2">
+                  <Info className="w-3 h-3" />
+                  Stream Information
+                </p>
+                <div className="space-y-2 font-mono text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Started:</span>
+                    <span className="font-bold">{new Date(Number(startTime) * 1000).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Type:</span>
+                    <span className="font-bold text-purple-600 dark:text-purple-400">Infinite Stream</span>
+                  </div>
+                  <div className="flex justify-between border-t border-border pt-2 mt-2">
+                    <span className="text-muted-foreground">Duration:</span>
+                    <span className="font-bold text-primary">Ongoing</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Conditional based on mode */}
           <div className="pt-4 border-t border-border space-y-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Employer Actions</p>
-            <div className="grid grid-cols-2 gap-2">
-              <Button onClick={() => setShowUpdateModal(true)} size={"lg"} disabled={isExpired}>
-                {isInfinite ? "Update Rate" : "Extend Stream"}
-              </Button>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+              {mode === "employer" ? "Employer Actions" : "Employee Actions"}
+            </p>
 
-              <Button
-                onClick={handlePauseActivate}
-                variant="outline"
-                size={"lg"}
-                isLoading={isProcessing}
-                disabled={isExpired || isProcessing}
-              >
-                {isActive ? (
-                  <span className="flex items-center gap-2">Pause</span>
-                ) : (
-                  <span className="flex items-center gap-2">Activate</span>
-                )}
-              </Button>
-            </div>
+            {mode === "employer" ? (
+              // Employer Mode: Update/Pause buttons
+              <div className="grid grid-cols-2 gap-2">
+                <Button onClick={() => setShowUpdateModal(true)} size="lg" disabled={isExpired}>
+                  {isInfinite ? "Update Rate" : "Extend Stream"}
+                </Button>
+
+                <Button
+                  onClick={handlePauseActivate}
+                  variant="outline"
+                  size="lg"
+                  isLoading={isPauseActivateLoading}
+                  disabled={isExpired || isPauseActivateLoading}
+                >
+                  {isActive ? "Pause" : "Activate"}
+                </Button>
+              </div>
+            ) : (
+              // Employee Mode: Withdraw button only
+              <div className="grid grid-cols-1">
+                <Button
+                  onClick={handleWithdraw}
+                  size="lg"
+                  isLoading={isWithdrawLoading}
+                  disabled={availableToWithdrawUSDC === 0 || isWithdrawLoading}
+                >
+                  {availableToWithdrawUSDC > 0
+                    ? `Withdraw $${availableToWithdrawUSDC.toFixed(2)}`
+                    : "No Funds Available"}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {showUpdateModal && (
+      {showUpdateModal && mode === "employer" && (
         <UpdateStreamModal
           employer={employer}
           employee={employee}
@@ -323,7 +370,7 @@ function RateCard({
   return (
     <div
       className={cn(
-        " p-3 border transition-all duration-300",
+        "p-3 border transition-all duration-300",
         highlight
           ? "bg-primary/5 border-primary/30 hover:bg-primary/10"
           : "bg-muted/20 border-border hover:bg-muted/30",
