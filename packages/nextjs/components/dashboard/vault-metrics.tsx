@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { NumberTicker } from "../number-ticker";
 import { AlertCircle, RefreshCw, RotateCcw, TrendingUp } from "lucide-react";
-import { formatUnits, maxUint256, parseUnits } from "viem";
+import { formatUnits, maxUint256 } from "viem";
 import { useAccount } from "wagmi";
 import { Button } from "~~/components/ui/button";
 import { ONE_DAY } from "~~/const";
@@ -187,10 +187,15 @@ export default function VaultMetrics() {
           <div>
             <p className="text-sm font-mono text-muted-foreground mb-2">Available Balance</p>
             <h2 className={cn("text-4xl font-serif font-bold", styles.text)}>
-              <NumberTicker value={formatUnits(liveBalance, 6)} decimalPlaces={2} prefix="$" className={styles.text} />
+              <NumberTicker
+                value={formatUnits(liveBalance ?? 0, 6)}
+                decimalPlaces={2}
+                prefix="$"
+                className={styles.text}
+              />
             </h2>
             <NumberTicker
-              value={liveBalance}
+              value={liveBalance ?? 0}
               decimalPlaces={0}
               suffix=" wei"
               className={"text-xs font-mono text-muted-foreground mt-1"}

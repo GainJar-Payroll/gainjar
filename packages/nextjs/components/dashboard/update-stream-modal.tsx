@@ -3,7 +3,7 @@
 import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import { parseUnits } from "viem";
+import { formatUnits, parseUnits } from "viem";
 import * as z from "zod";
 import { AmountInput } from "~~/components/amount-input";
 import { PreviewBox } from "~~/components/preview-box";
@@ -46,7 +46,7 @@ export function UpdateStreamModal({ employer, employee, currentRate, streamType,
   const infiniteForm = useForm<InfiniteFormData>({
     resolver: zodResolver(infiniteSchema),
     defaultValues: {
-      newMonthlyRate: (currentRate * 2592000).toFixed(2) as any, // Current monthly rate
+      newMonthlyRate: (currentRate * 2592000).toFixed(2) as any,
     },
   });
 
@@ -62,31 +62,64 @@ export function UpdateStreamModal({ employer, employee, currentRate, streamType,
     contractName: "GainJar",
   });
 
-  // Watch values for preview
   const watchNewMonthlyRate = infiniteForm.watch("newMonthlyRate");
   const watchAdditionalAmount = finiteForm.watch("additionalAmount");
   const watchAdditionalDays = finiteForm.watch("additionalDays");
 
-  // Preview for infinite stream update
+  // ========================================
+  // ✅ FIX: Calculate actual rates with precision loss detection
+  // ========================================
   const infinitePreview = React.useMemo(() => {
     if (!watchNewMonthlyRate || Number(watchNewMonthlyRate) === 0) return null;
 
-    const newMonthly = Number(watchNewMonthlyRate);
-    const newDaily = newMonthly / 30;
-    const newHourly = newDaily / 24;
-    const newPerSecond = newMonthly / 2592000;
+    const newMonthlyInput = Number(watchNewMonthlyRate);
+    const newMonthlyRaw = parseUnits(newMonthlyInput.toString(), 6);
+    const monthSeconds = BigInt(30 * 24 * 60 * 60);
+
+    // Calculate actual rate per second (what contract will store)
+    const newRatePerSecond = newMonthlyRaw / monthSeconds;
+
+    // Calculate actual amounts based on truncated rate
+    const actualMonthlyAmount = newRatePerSecond * monthSeconds;
+    const actualMonthly = Number(formatUnits(actualMonthlyAmount, 6));
+
+    const actualDailyAmount = newRatePerSecond * BigInt(24 * 60 * 60);
+    const actualDaily = Number(formatUnits(actualDailyAmount, 6));
+
+    const actualHourlyAmount = newRatePerSecond * BigInt(60 * 60);
+    const actualHourly = Number(formatUnits(actualHourlyAmount, 6));
+
+    const newPerSecond = Number(formatUnits(newRatePerSecond, 6));
+
+    // Calculate precision loss
+    const precisionLoss = newMonthlyInput - actualMonthly;
+    const precisionLossPercent = (precisionLoss / newMonthlyInput) * 100;
 
     const oldMonthly = currentRate * 2592000;
     const oldDaily = currentRate * 86400;
 
     return {
-      oldMonthly: oldMonthly.toFixed(2),
-      oldDaily: oldDaily.toFixed(2),
-      newMonthly: newMonthly.toFixed(2),
-      newDaily: newDaily.toFixed(2),
-      newHourly: newHourly.toFixed(4),
-      newPerSecond: newPerSecond.toFixed(8),
-      change: (((newMonthly - oldMonthly) / oldMonthly) * 100).toFixed(1),
+      // Old values
+      oldMonthly: oldMonthly.toFixed(6),
+      oldDaily: oldDaily.toFixed(6),
+
+      // Input (what user typed)
+      inputMonthly: newMonthlyInput.toFixed(6),
+
+      // Actual (what contract will pay)
+      actualMonthly: actualMonthly.toFixed(6),
+      actualDaily: actualDaily.toFixed(6),
+      actualHourly: actualHourly.toFixed(6),
+      actualPerSecond: newPerSecond.toFixed(6),
+
+      // Precision loss
+      precisionLoss: Math.abs(precisionLoss).toFixed(6),
+      precisionLossPercent: Math.abs(precisionLossPercent).toFixed(2),
+      hasPrecisionLoss: Math.abs(precisionLossPercent) > 0.01,
+      isCriticalLoss: Math.abs(precisionLossPercent) > 1,
+
+      // Change from old rate
+      change: (((actualMonthly - oldMonthly) / oldMonthly) * 100).toFixed(1),
     };
   }, [watchNewMonthlyRate, currentRate]);
 
@@ -96,20 +129,47 @@ export function UpdateStreamModal({ employer, employee, currentRate, streamType,
 
     const additional = Number(watchAdditionalAmount);
     const days = Number(watchAdditionalDays) || 1;
-    const dailyRate = additional / days;
+
+    const additionalRaw = parseUnits(additional.toString(), 6);
+    const durationSeconds = BigInt(days * 24 * 60 * 60);
+
+    // Calculate actual rate
+    const ratePerSecond = additionalRaw / durationSeconds;
+    const actualTotalAmount = ratePerSecond * durationSeconds;
+    const actualTotal = Number(formatUnits(actualTotalAmount, 6));
+
+    // Calculate rates
+    const dailyRate = actualTotal / days;
     const hourlyRate = dailyRate / 24;
 
+    // Final payout
+    const finalPayoutAmount = additionalRaw - actualTotalAmount;
+    const finalPayout = Number(formatUnits(finalPayoutAmount, 6));
+
+    // Precision loss
+    const precisionLoss = additional - actualTotal;
+    const precisionLossPercent = (precisionLoss / additional) * 100;
+
     return {
-      totalAdditional: additional.toFixed(2),
+      inputTotal: additional.toFixed(6),
+      actualTotal: actualTotal.toFixed(6),
       days: days,
-      dailyRate: dailyRate.toFixed(2),
-      hourlyRate: hourlyRate.toFixed(4),
+      dailyRate: dailyRate.toFixed(6),
+      hourlyRate: hourlyRate.toFixed(6),
+
+      finalPayout: finalPayout,
+      hasFinalPayout: finalPayout > 0.000001,
+
+      precisionLoss: Math.abs(precisionLoss).toFixed(6),
+      precisionLossPercent: Math.abs(precisionLossPercent).toFixed(2),
+      hasPrecisionLoss: Math.abs(precisionLossPercent) > 0.01,
+      isCriticalLoss: Math.abs(precisionLossPercent) > 1,
     };
   }, [watchAdditionalAmount, watchAdditionalDays]);
 
   async function handleInfiniteSubmit(data: InfiniteFormData) {
     const newRateAmount = parseUnits(data.newMonthlyRate.toString(), 6);
-    const period = 30 * 24 * 60 * 60; // 30 days in seconds
+    const period = 30 * 24 * 60 * 60;
 
     await handleTransaction(async () => {
       await writeContractAsync({
@@ -152,7 +212,6 @@ export function UpdateStreamModal({ employer, employee, currentRate, streamType,
 
           <CardContent>
             {isInfinite ? (
-              // INFINITE STREAM FORM
               <form id="form-update" onSubmit={infiniteForm.handleSubmit(handleInfiniteSubmit)} className="space-y-6">
                 <Controller
                   name="newMonthlyRate"
@@ -171,20 +230,26 @@ export function UpdateStreamModal({ employer, employee, currentRate, streamType,
 
                 {infinitePreview && (
                   <PreviewBox
-                    title="Rate Change Preview"
+                    title="Actual Rate Change Preview"
                     items={[
                       { label: "Old Monthly", value: `$${infinitePreview.oldMonthly}` },
                       { label: "Old Daily", value: `$${infinitePreview.oldDaily}` },
-                      { label: "New Monthly", value: `$${infinitePreview.newMonthly}` },
-                      { label: "New Daily", value: `$${infinitePreview.newDaily}` },
-                      // { label: "New Hourly", value: `$${infinitePreview.newHourly}`, small: true },
-                      { label: "New Per Second", value: `$${infinitePreview.newPerSecond}` },
+                      {
+                        label: "New Monthly (Actual)",
+                        value: `$${infinitePreview.actualMonthly}`,
+                      },
+                      { label: "New Daily", value: `$${infinitePreview.actualDaily}` },
+                      { label: "New Per Second", value: `$${infinitePreview.actualPerSecond}` },
                     ]}
                     footer={
                       <div className="flex justify-between items-center">
                         <span className="text-xs uppercase tracking-wider font-bold">Change</span>
                         <span
-                          className={`font-mono font-bold text-lg ${Number(infinitePreview.change) >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
+                          className={`font-mono font-bold text-lg ${
+                            Number(infinitePreview.change) >= 0
+                              ? "text-green-600 dark:text-green-400"
+                              : "text-red-600 dark:text-red-400"
+                          }`}
                         >
                           {Number(infinitePreview.change) >= 0 ? "+" : ""}
                           {infinitePreview.change}%
@@ -192,6 +257,19 @@ export function UpdateStreamModal({ employer, employee, currentRate, streamType,
                       </div>
                     }
                   >
+                    {infinitePreview.hasPrecisionLoss && (
+                      <TransactionAlert
+                        type={"warning"}
+                        title={infinitePreview.isCriticalLoss ? "Critical Precision Loss" : "Precision Loss Detected"}
+                        description={
+                          infinitePreview.isCriticalLoss
+                            ? `Actual monthly will be $${infinitePreview.actualMonthly} instead of $${infinitePreview.inputMonthly}. Loss: $${infinitePreview.precisionLoss} (${infinitePreview.precisionLossPercent}%). Use $100+ amounts.`
+                            : `Actual differs by ${infinitePreview.precisionLossPercent}% ($${infinitePreview.precisionLoss}).`
+                        }
+                        className="mb-4"
+                      />
+                    )}
+
                     <TransactionAlert
                       type="info"
                       title="Employee will be paid current earned amount before rate update"
@@ -212,7 +290,6 @@ export function UpdateStreamModal({ employer, employee, currentRate, streamType,
                 )}
               </form>
             ) : (
-              // FINITE STREAM FORM
               <form id="form-extend" onSubmit={finiteForm.handleSubmit(handleFiniteSubmit)} className="space-y-6">
                 <Controller
                   name="additionalAmount"
@@ -246,23 +323,52 @@ export function UpdateStreamModal({ employer, employee, currentRate, streamType,
 
                 {finitePreview && (
                   <PreviewBox
-                    title="Extension Preview"
+                    title="Actual Extension Preview"
                     items={[
-                      { label: "Additional Amount", value: `$${finitePreview.totalAdditional}`, highlight: true },
+                      {
+                        label: "Actual Additional",
+                        value: `$${finitePreview.actualTotal}`,
+                      },
                       { label: "Additional Days", value: `${finitePreview.days} days` },
                       { label: "Daily Rate", value: `$${finitePreview.dailyRate}` },
-                      { label: "Hourly Rate", value: `$${finitePreview.hourlyRate}`, small: true },
+                      { label: "Hourly Rate", value: `$${finitePreview.hourlyRate}` },
                     ]}
                     footer={
                       <div className="space-y-2">
                         <div className="text-xs text-muted-foreground leading-relaxed">
                           Employee will earn additional{" "}
-                          <span className="font-mono font-bold">${finitePreview.totalAdditional}</span> over{" "}
+                          <span className="font-mono font-bold">${finitePreview.actualTotal}</span> over{" "}
                           <span className="font-mono font-bold">{finitePreview.days} days</span>.
                         </div>
                       </div>
                     }
                   >
+                    {finitePreview.hasPrecisionLoss && (
+                      <TransactionAlert
+                        type={"warning"}
+                        title={finitePreview.isCriticalLoss ? "Critical Precision Loss" : "Precision Loss Detected"}
+                        description={
+                          finitePreview.isCriticalLoss
+                            ? `Actual total will be $${finitePreview.actualTotal} instead of $${finitePreview.inputTotal}. Loss: $${finitePreview.precisionLoss} (${finitePreview.precisionLossPercent}%). Use larger amounts.`
+                            : `Actual differs by ${finitePreview.precisionLossPercent}% ($${finitePreview.precisionLoss}).`
+                        }
+                        className="mb-4"
+                      />
+                    )}
+
+                    {finitePreview.hasFinalPayout && (
+                      <div className="border-t border-border pt-4 mb-4">
+                        <div className="flex flex-col">
+                          <div className="text-xs font-bold mb-1 font-mono">
+                            Final Payout: ${finitePreview.finalPayout.toFixed(6)}
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            This remainder will be paid with the final withdrawal.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     <TransactionAlert
                       type="info"
                       title="Employee will be paid current earned amount before extension"
@@ -290,7 +396,7 @@ export function UpdateStreamModal({ employer, employee, currentRate, streamType,
             <Button
               type="submit"
               form={isInfinite ? "form-update" : "form-extend"}
-              className={"w-full"}
+              className="w-full"
               disabled={isLoading}
             >
               {step === "idle" && (isInfinite ? "Update Rate" : "Extend Stream")}

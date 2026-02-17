@@ -13,9 +13,10 @@ import { EVaultStatus, VaultStatusLabel } from "~~/types/type";
 interface EmployerVaultCardProps {
   employer: `0x${string}`;
   employee: `0x${string}`;
+  index: number;
 }
 
-export function EmployerVaultCard({ employer, employee }: EmployerVaultCardProps) {
+export function EmployerVaultCard({ employer, employee, index }: EmployerVaultCardProps) {
   const [showLiquidateModal, setShowLiquidateModal] = useState(false);
 
   // Fetch vault health
@@ -102,7 +103,7 @@ export function EmployerVaultCard({ employer, employee }: EmployerVaultCardProps
               <Building2 className={`w-6 h-6 text-primary ${style.text}`} />
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Your Employer</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-bold">Employer {index + 1}</p>
               <p className="font-mono text-sm font-bold">
                 {employer.slice(0, 6)}...{employer.slice(-4)}
               </p>

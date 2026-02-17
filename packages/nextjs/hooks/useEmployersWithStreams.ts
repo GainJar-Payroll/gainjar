@@ -32,6 +32,5 @@ export function useEmployersWithStreams(employeeAddress: string | undefined) {
     return uniqueEmployers;
   }, [streamCreatedEvents]);
 
-  console.log("🚀 ~ useEmployersWithStreams ~ employers:", employers);
   return { employers, isLoading };
 }

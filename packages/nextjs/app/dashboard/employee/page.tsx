@@ -4,6 +4,7 @@ import { Briefcase, Users } from "lucide-react";
 import { useAccount } from "wagmi";
 import { EmployeeStreamCard } from "~~/components/dashboard/employee-stream-card";
 import { EmployerVaultCard } from "~~/components/dashboard/employer-vault-card";
+import InfoCard from "~~/components/dashboard/info-card";
 import { useEmployersWithStreams } from "~~/hooks/useEmployersWithStreams";
 
 export default function EmployeePage() {
@@ -96,23 +97,23 @@ export default function EmployeePage() {
               </div>
             </div>
 
-            {/* List of Employers and Streams */}
-            {employers.map((employer, index) => (
-              <div key={employer} className="space-y-4">
-                {/* Section Header */}
-                <div className="border-l-4 border-primary pl-4 py-2 bg-muted/10">
-                  <h2 className="text-xl font-heading font-bold text-foreground uppercase tracking-wider">
-                    Employer #{index + 1}
-                  </h2>
+            <div className="grid lg:grid-cols-2 gap-4">
+              {/* List of Employers and Streams */}
+              {employers.map((employer, index) => (
+                <div key={employer} className="flex flex-col gap-4 col-span-1">
+                  {/* Employer Vault Card */}
+                  <EmployerVaultCard employer={employer} employee={address as `0x${string}`} index={index} />
+
+                  {/* Employee Stream Card */}
+                  <EmployeeStreamCard
+                    employer={employer}
+                    employee={address as `0x${string}`}
+                    mode="employee"
+                    className="lg:w-full"
+                  />
                 </div>
-
-                {/* Employer Vault Card */}
-                <EmployerVaultCard employer={employer} employee={address as `0x${string}`} />
-
-                {/* Employee Stream Card */}
-                <EmployeeStreamCard employer={employer} employee={address as `0x${string}`} mode="employee" />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
@@ -138,32 +139,14 @@ export default function EmployeePage() {
           </div>
         </div>
 
-        {/* Info Box */}
-        <div className="border border-border bg-card p-6">
-          <div className="border-l-4 border-primary pl-4 py-2 bg-accent/20 mb-3">
-            <h3 className="text-sm font-heading font-bold text-foreground">💡 About Liquidation</h3>
-          </div>
+        <div className="bg-card border border-border p-4">
+          <p className="text-xs font-mono text-muted-foreground mb-3 font-semibold">About Liquidation</p>
           <p className="text-xs font-mono text-muted-foreground leading-relaxed">
             If your employer's vault runs critically low, you can liquidate to protect all employees. This pauses all
             streams and distributes earned amounts. You'll earn a reward for helping maintain the system's safety.
           </p>
         </div>
       </div>
-    </div>
-  );
-}
-
-// Helper Component
-function InfoCard({ number, title, description }: { number: number; title: string; description: string }) {
-  return (
-    <div className="p-4 bg-accent/20  border-l-4 border-primary space-y-2">
-      <div className="flex items-center gap-2">
-        <span className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">
-          {number}
-        </span>
-        <h4 className="font-heading font-bold text-foreground">{title}</h4>
-      </div>
-      <p className="text-sm font-mono text-muted-foreground leading-relaxed">{description}</p>
     </div>
   );
 }
