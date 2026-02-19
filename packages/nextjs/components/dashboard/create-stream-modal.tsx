@@ -100,41 +100,64 @@ export function CreateStreamModal() {
 
   const preview = React.useMemo(() => {
     const isMonthly = watchType === "monthly";
-
     const amountStr = isMonthly ? watchMonthlySalary : watchTotalPayment;
     const duration = Number(watchDuration) || 1;
 
     if (!amountStr || Number(amountStr) === 0) return null;
 
     const amount = Number(amountStr);
-
-    const rawAmount = parseUnits(String(amountStr), 6); // token 6 decimals
-
+    const rawAmount = parseUnits(String(amountStr), 6);
     const durationInSeconds = BigInt(duration * 24 * 60 * 60);
+    const monthInSeconds = BigInt(30 * 24 * 60 * 60);
 
-    const upcomingFlowRate = isMonthly ? rawAmount / BigInt(30 * 24 * 60 * 60) : rawAmount / durationInSeconds;
+    const upcomingFlowRate = isMonthly ? rawAmount / monthInSeconds : rawAmount / durationInSeconds;
 
-    const daily = isMonthly ? amount / 30 : amount / duration;
-    const hourly = daily / 24;
+    const actualMonthlyAmount = upcomingFlowRate * monthInSeconds;
+    const actualMonthly = Number(formatUnits(actualMonthlyAmount, 6));
+
+    const actualDailyAmount = upcomingFlowRate * BigInt(24 * 60 * 60);
+    const actualDaily = Number(formatUnits(actualDailyAmount, 6));
+
+    const actualHourlyAmount = upcomingFlowRate * BigInt(60 * 60);
+    const actualHourly = Number(formatUnits(actualHourlyAmount, 6));
+
     const perSecondUI = Number(formatUnits(upcomingFlowRate, 6));
+
+    const inputMonthlyAmount = isMonthly ? amount : (amount / duration) * 30;
+    const precisionLoss = inputMonthlyAmount - actualMonthly;
+    const precisionLossPercent = (precisionLoss / inputMonthlyAmount) * 100;
+
+    // For finite streams
+    const actualTotalAmount = upcomingFlowRate * durationInSeconds;
+    const actualTotal = Number(formatUnits(actualTotalAmount, 6));
+
+    // Final payout (finite only)
+    const finalPayoutAmount = isMonthly ? 0n : rawAmount - actualTotalAmount;
+    const finalPayout = Number(formatUnits(finalPayoutAmount, 6));
 
     const maxFlowRate = maxAdditionalFlowRate;
 
     return {
-      monthly: isMonthly ? amount.toFixed(6) : ((amount / duration) * 30).toFixed(6),
+      // Input values
+      inputMonthly: inputMonthlyAmount.toFixed(6),
+      inputTotal: amount.toFixed(6),
 
-      daily: daily.toFixed(6),
-      hourly: hourly.toFixed(6),
-      perSecond: perSecondUI.toFixed(6),
+      actualMonthly: actualMonthly.toFixed(6),
+      actualDaily: actualDaily.toFixed(6),
+      actualHourly: actualHourly.toFixed(6),
+      actualPerSecond: perSecondUI.toFixed(6),
+      actualTotal: actualTotal.toFixed(6),
 
-      total: amount.toFixed(2),
+      precisionLoss: Math.abs(precisionLoss).toFixed(6),
+      precisionLossPercent: Math.abs(precisionLossPercent).toFixed(2),
+      hasPrecisionLoss: Math.abs(precisionLossPercent) > 0.01,
+      isCriticalLoss: Math.abs(precisionLossPercent) > 1, // Block if > 1%
 
       duration: isMonthly ? "Ongoing" : `${duration} days`,
-
-      finalPayout: isMonthly ? 0 : Number(formatUnits(rawAmount % durationInSeconds, 6)),
+      finalPayout: finalPayout,
+      hasFinalPayout: finalPayout > 0.000001,
 
       maxAllowedFlowRate: Number(formatUnits(maxFlowRate, 6)),
-
       maxAdditionalFlowRateExceeded: upcomingFlowRate > maxFlowRate,
     };
   }, [watchType, watchMonthlySalary, watchTotalPayment, watchDuration, maxAdditionalFlowRate]);
@@ -247,8 +270,6 @@ export function CreateStreamModal() {
                         field.onChange(cleanVal);
                       }}
                       error={fieldState.error}
-                      maxBalance={formattedBalance}
-                      onMaxClick={() => field.onChange(Number(formattedBalance))}
                       disabled={isLoading}
                       helperText="Employee earns this every 30 days"
                     />
@@ -273,8 +294,6 @@ export function CreateStreamModal() {
                           field.onChange(cleanVal);
                         }}
                         error={fieldState.error}
-                        maxBalance={formattedBalance}
-                        onMaxClick={() => field.onChange(Number(formattedBalance))}
                         disabled={isLoading}
                         helperText="Total project payment"
                       />
@@ -308,35 +327,32 @@ export function CreateStreamModal() {
               {/* Preview */}
               {preview && (
                 <PreviewBox
-                  title={watchType === "monthly" ? "Monthly Salary" : "Project Payment"}
+                  title="Actual Stream Rates (After Contract Precision)"
                   items={[
                     {
                       label: "Per Month",
-                      value: `$${preview.monthly}`,
-                      // highlight: true,
-                      small: true,
+                      value: `$${preview.actualMonthly}`,
                     },
                     {
                       label: "Per Day",
-                      value: `$${preview.daily}`,
-                      small: true,
+                      value: `$${preview.actualDaily}`,
                     },
                     {
                       label: "Per Hour",
-                      value: `$${preview.hourly}`,
-                      small: true,
+                      value: `$${preview.actualHourly}`,
                     },
                     {
                       label: "Per Second",
-                      value: `$${preview.perSecond}`,
-                      small: true,
+                      value: `$${preview.actualPerSecond}`,
                     },
                   ]}
                   footer={
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-xs uppercase tracking-wider font-bold">Total Required</span>
-                        <span className="font-heading font-bold text-2xl">${preview.total}</span>
+                        <span className="font-heading font-bold text-2xl">
+                          ${watchType === "monthly" ? preview.actualMonthly : preview.actualTotal}
+                        </span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-xs text-muted-foreground uppercase tracking-wider">Duration</span>
@@ -363,15 +379,34 @@ export function CreateStreamModal() {
                     />
                   )}
 
+                  {preview.hasPrecisionLoss && (
+                    <TransactionAlert
+                      type={"warning"}
+                      title={preview.isCriticalLoss ? "Critical Precision Loss Detected" : "Precision Loss Detected"}
+                      description={
+                        preview.isCriticalLoss
+                          ? `Due to per-second integer division, actual ${
+                              watchType === "monthly" ? "monthly" : "total"
+                            } will be $${
+                              watchType === "monthly" ? preview.actualMonthly : preview.actualTotal
+                            } instead of $${
+                              watchType === "monthly" ? preview.inputMonthly : preview.inputTotal
+                            }. Loss: $${preview.precisionLoss} (${preview.precisionLossPercent}%). Use larger amounts (recommended: $100+ monthly).`
+                          : `Actual rate differs by ${preview.precisionLossPercent}% ($${preview.precisionLoss}) due to integer division.`
+                      }
+                      className="mb-4"
+                    />
+                  )}
+
                   {preview.finalPayout !== 0 && (
                     <div className="border-t border-border pt-4 mb-4">
                       <div className="flex flex-col">
-                        <div className="text-xs font-bold mb-1 font-mono">Final Payout</div>
+                        <div className="text-xs font-bold mb-1 font-mono">
+                          Final Payout: ${preview.finalPayout.toFixed(6)}
+                        </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                          Due to per-second streaming precision, a small remainder of{" "}
-                          <span className="font-mono font-bold">${preview.finalPayout}</span> will be paid with the last
-                          withdrawal to ensure the employee receives exactly{" "}
-                          <span className="font-mono font-bold">${preview.total}</span>.
+                          This remainder will be paid with the final withdrawal to ensure employee receives exactly $
+                          {preview.inputTotal}.
                         </p>
                       </div>
                     </div>

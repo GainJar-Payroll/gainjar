@@ -65,7 +65,7 @@ export function StreamsList({ limit, showFilters = true }: StreamsListProps) {
   // Empty state
   if (!allEmployees || (allEmployees as string[]).length === 0) {
     return (
-      <div className="border-2 border-dashed border-muted-foreground/30 p-12 text-center bg-muted/5">
+      <div className="border-2 border-dashed border-muted-foreground/30 p-12 mb-8 text-center bg-muted/5">
         <div className="mb-4">
           <svg
             className="mx-auto h-12 w-12 text-muted-foreground/50"
@@ -106,7 +106,7 @@ export function StreamsList({ limit, showFilters = true }: StreamsListProps) {
             </div>
 
             {/* Filter Buttons */}
-            <div>
+            {/* <div>
               <label className="text-xs uppercase tracking-wider text-muted-foreground font-bold mb-2 block">
                 Filter by Status
               </label>
@@ -124,7 +124,7 @@ export function StreamsList({ limit, showFilters = true }: StreamsListProps) {
                   Expired
                 </FilterButton>
               </div>
-            </div>
+            </div> */}
 
             {search && (
               <div className="text-xs font-mono text-muted-foreground">

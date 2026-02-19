@@ -38,7 +38,7 @@ export function AmountInput({
             onClick={onMaxClick}
             disabled={disabled}
           >
-            Max
+            Max {maxBalance}
           </Button>
         )}
       </div>

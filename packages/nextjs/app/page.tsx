@@ -3,10 +3,26 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "~~/components/ui/button";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 export default function GainJarLanding() {
   const [streamAmount, setStreamAmount] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
+
+  // Fetch fee from contract (in basis points: 50 = 0.50%)
+  const { data: feeBasisPoints } = useScaffoldReadContract({
+    contractName: "GainJar",
+    functionName: "getFeeBasisPoints",
+  });
+
+  // Convert basis points to percentage (50 basis points = 0.50%)
+  const feePercentage = feeBasisPoints ? Number(feeBasisPoints) / 100 : 0;
+
+  // Calculate fee amount for example ($1000 withdrawal)
+  // Formula: amount * (basisPoints / 10000)
+  // Example: 1000 * (50 / 10000) = 1000 * 0.005 = $5.00
+  const exampleWithdrawal = 1000;
+  const exampleFeeAmount = feeBasisPoints ? (exampleWithdrawal * Number(feeBasisPoints)) / 10000 : 0;
 
   useEffect(() => {
     setIsVisible(true);
@@ -27,7 +43,7 @@ export default function GainJarLanding() {
             }`}
           >
             <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground mb-8 font-medium">
-              Established 2025
+              Established 2026
             </div>
 
             <h1 className="text-6xl sm:text-7xl lg:text-8xl xl:text-9xl font-heading font-bold tracking-tight mb-10 leading-[0.9] max-w-5xl">
@@ -38,7 +54,7 @@ export default function GainJarLanding() {
               A decentralized payroll protocol enabling continuous, real-time salary payments on the blockchain.
             </h2>
 
-            <div className="border-l-4 border-foreground pl-6 mb-12 max-w-2xl">
+            <div className="border-l-4 border-border pl-6 mb-12 max-w-2xl">
               <p className="text-lg text-muted-foreground leading-relaxed">
                 GainJar replaces informal payroll agreements with cryptographic verification. Salaries stream every
                 second. Withdraw anytime. Fully on-chain.
@@ -75,7 +91,7 @@ export default function GainJarLanding() {
                 Withdraw instantly, anytime you need funds.
               </p>
             </div>
-            <div className="border-2 border-foreground p-12 text-center bg-background">
+            <div className="border-2 border-border p-12 text-center bg-background">
               <div className="text-xs uppercase tracking-[0.15em] text-muted-foreground mb-4 font-medium">
                 Streaming Now
               </div>
@@ -276,13 +292,13 @@ export default function GainJarLanding() {
               },
               {
                 step: "02",
-                title: "Create Stream",
-                desc: "Set recipient address, salary rate, and duration. Approve the transaction on-chain with your signature.",
+                title: "Fund Vault",
+                desc: "Deposit USDC into your employer vault. Payments flow automatically and continuously from your reserves.",
               },
               {
                 step: "03",
-                title: "Fund Vault",
-                desc: "Deposit USDC into your employer vault. Payments flow automatically and continuously from your reserves.",
+                title: "Create Stream",
+                desc: "Set recipient address, salary rate, and duration. Approve the transaction on-chain with your signature.",
               },
               {
                 step: "04",
@@ -290,7 +306,7 @@ export default function GainJarLanding() {
                 desc: "Employees claim earnings instantly. Direct settlement to personal wallet with no intermediaries.",
               },
             ].map((item, idx) => (
-              <div key={idx} className="border-l-4 border-foreground pl-8">
+              <div key={idx} className="border-l-4 border-border pl-8">
                 <div className="text-sm font-mono text-muted-foreground mb-3">{item.step}</div>
                 <h3 className="text-2xl font-heading font-bold mb-4">{item.title}</h3>
                 <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
@@ -313,7 +329,7 @@ export default function GainJarLanding() {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12">
-            <div className="border-2 border-foreground p-10 bg-background">
+            <div className="border-2 border-border p-10 bg-background">
               <div className="mb-8">
                 <h3 className="text-3xl font-heading font-bold mb-4">Infinite Stream</h3>
                 <p className="text-muted-foreground leading-relaxed">
@@ -321,7 +337,7 @@ export default function GainJarLanding() {
                   manually paused.
                 </p>
               </div>
-              <div className="space-y-4 text-sm">
+              <div className="space-y-4 text-sm font-mono">
                 <div className="flex items-start gap-3">
                   <div className="w-1.5 h-1.5 bg-foreground rounded-full mt-2 flex-shrink-0"></div>
                   <div>
@@ -346,7 +362,7 @@ export default function GainJarLanding() {
               </div>
             </div>
 
-            <div className="border-2 border-foreground p-10 bg-background">
+            <div className="border-2 border-border p-10 bg-background">
               <div className="mb-8">
                 <h3 className="text-3xl font-heading font-bold mb-4">Finite Stream</h3>
                 <p className="text-muted-foreground leading-relaxed">
@@ -354,7 +370,7 @@ export default function GainJarLanding() {
                   withdrawn or time expires.
                 </p>
               </div>
-              <div className="space-y-4 text-sm">
+              <div className="space-y-4 text-sm font-mono">
                 <div className="flex items-start gap-3">
                   <div className="w-1.5 h-1.5 bg-foreground rounded-full mt-2 flex-shrink-0"></div>
                   <div>
@@ -396,19 +412,13 @@ export default function GainJarLanding() {
                 Vault health monitoring & liquidation protection.
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed mb-8">
-                GainJar monitors employer vaults and classifies them into health statuses. When funds run critically
-                low, automatic liquidation ensures employees get paid first.
+                All employers must maintain at least 7 days of coverage. System alerts at warning thresholds and
+                executes automatic employee protection if vault reaches critical levels.
               </p>
-              <div className="border-l-4 border-foreground pl-6">
-                <p className="text-muted-foreground leading-relaxed">
-                  All employers must maintain at least 7 days of coverage. System alerts at warning thresholds and
-                  executes automatic employee protection if vault reaches critical levels.
-                </p>
-              </div>
             </div>
 
             <div className="space-y-6">
-              <div className="border-l-4 border-foreground pl-6 py-4">
+              <div className="border-l-4 border-border pl-6 py-4">
                 <div className="flex items-baseline gap-4 mb-2">
                   <div className="text-2xl font-heading font-bold">HEALTHY</div>
                   <div className="text-sm font-mono text-muted-foreground">≥30 days</div>
@@ -461,19 +471,13 @@ export default function GainJarLanding() {
               <h3 className="text-2xl font-heading font-bold mb-6">Smart Contract Security</h3>
               <div className="space-y-6">
                 <div className="border-l-2 border-border pl-6">
-                  <div className="font-medium mb-2">Audited Contracts</div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    Code reviewed by security experts. All logic verifiable on-chain. No backdoors, no exploits.
-                  </p>
-                </div>
-                <div className="border-l-2 border-border pl-6">
-                  <div className="font-medium mb-2">ReentrancyGuard</div>
+                  <div className="font-medium font-heading mb-2">ReentrancyGuard</div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     Industry-standard protection against reentrancy attacks on all withdrawal functions.
                   </p>
                 </div>
                 <div className="border-l-2 border-border pl-6">
-                  <div className="font-medium mb-2">Access Control</div>
+                  <div className="font-medium font-heading mb-2">Access Control</div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     OpenZeppelin Ownable pattern with strict permission management for administrative functions.
                   </p>
@@ -485,19 +489,19 @@ export default function GainJarLanding() {
               <h3 className="text-2xl font-heading font-bold mb-6">Self-Custody & Transparency</h3>
               <div className="space-y-6">
                 <div className="border-l-2 border-border pl-6">
-                  <div className="font-medium mb-2">Non-Custodial</div>
+                  <div className="font-medium font-heading mb-2">Non-Custodial</div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     You hold your own keys. You control your funds. We never custody your money. Pure DeFi.
                   </p>
                 </div>
                 <div className="border-l-2 border-border pl-6">
-                  <div className="font-medium mb-2">On-Chain Records</div>
+                  <div className="font-medium font-heading mb-2">On-Chain Records</div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     Every transaction recorded immutably on Arbitrum. Full auditability. No hidden fees.
                   </p>
                 </div>
                 <div className="border-l-2 border-border pl-6">
-                  <div className="font-medium mb-2">Open Source</div>
+                  <div className="font-medium font-heading mb-2">Open Source</div>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     All smart contract code publicly available on GitHub. Verify before you trust.
                   </p>
@@ -561,16 +565,18 @@ export default function GainJarLanding() {
                 Transparent fee structure.
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                GainJar charges a minimal 0.05% fee on employee withdrawals. No monthly fees, no setup fees, no hidden
-                charges. Just simple, transparent pricing.
+                GainJar charges a minimal {feePercentage.toFixed(2)}% fee on employee withdrawals. No monthly fees, no
+                setup fees, no hidden charges. Just simple, transparent pricing.
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-8">
               <div className="text-center">
-                <div className="text-5xl font-heading font-bold mb-3 tabular-nums">0.05%</div>
+                <div className="text-5xl font-heading font-bold mb-3 tabular-nums">{feePercentage.toFixed(2)}%</div>
                 <div className="text-xs text-muted-foreground uppercase tracking-wider">Withdrawal Fee</div>
-                <div className="text-xs text-muted-foreground mt-3 font-mono">$1,000 → $0.50 fee</div>
+                <div className="text-xs text-muted-foreground mt-3 font-mono">
+                  $1,000 → ${exampleFeeAmount.toFixed(2)} fee
+                </div>
               </div>
               <div className="text-center">
                 <div className="text-5xl font-heading font-bold mb-3">$0</div>
@@ -637,21 +643,19 @@ export default function GainJarLanding() {
                 Launch Application
               </Button>
             </Link>
-            <Link href="https://github.com/raihanmd/gainjar" target="_blank">
+            <Link href="https://github.com/GainJar-Payroll/gainjar" target="_blank">
               <Button size="lg" variant="outline" className="px-10 uppercase tracking-wider font-medium">
                 View on GitHub
               </Button>
             </Link>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-8 text-xs uppercase tracking-wider text-muted-foreground">
-            <div>Audited Contracts</div>
-            <div>•</div>
+          <div className="flex flex-wrap justify-center gap-8 text-xs uppercase tracking-wider text-muted-foreground font-mono">
             <div>Non-Custodial</div>
             <div>•</div>
             <div>Open Source</div>
             <div>•</div>
-            <div>0.05% Fee</div>
+            <div>{feePercentage.toFixed(2)}% Fee</div>
           </div>
         </div>
       </section>
@@ -659,7 +663,7 @@ export default function GainJarLanding() {
       {/* Footer */}
       <footer className="border-t border-border py-16 px-6 lg:px-12">
         <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-12 mb-16">
+          <div className="grid md:grid-cols-4 gap-12 mb-16 font-mono">
             <div>
               <div className="text-2xl font-heading font-bold mb-4 lowercase">gainjar</div>
               <p className="text-sm text-muted-foreground">Decentralized payroll streaming protocol</p>
@@ -733,7 +737,9 @@ export default function GainJarLanding() {
             </div>
           </div>
           <div className="border-t border-border pt-8 text-center text-xs text-muted-foreground">
-            <p className="mb-2">© 2026 GainJar Protocol. MIT License. Built by @raihanmd</p>
+            <p className="mb-2">
+              © {new Date().getFullYear()} GainJar Protocol. MIT License. Built by @raihanmd and @syafiqsan
+            </p>
             <p>⚠️ Experimental software. Use at your own risk. Always test before production.</p>
           </div>
         </div>

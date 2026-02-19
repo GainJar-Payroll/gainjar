@@ -1,5 +1,6 @@
 import { CreateStreamModal } from "~~/components/dashboard/create-stream-modal";
 import { DepositModal } from "~~/components/dashboard/deposit-modal";
+import InfoCard from "~~/components/dashboard/info-card";
 import { StreamsList } from "~~/components/dashboard/streams-list";
 import StreamsOverview from "~~/components/dashboard/streams-overview";
 import VaultMetrics from "~~/components/dashboard/vault-metrics";
@@ -47,41 +48,17 @@ const page = () => {
         <div className="bg-card border border-border p-6 mb-8">
           <h3 className="text-lg font-heading font-bold text-card-foreground mb-4">How GainJar Works</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="p-4 bg-accent/20  border-l-4 border-primary space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">
-                  1
-                </span>
-                <h4 className="font-heading font-bold text-foreground">Deposit</h4>
-              </div>
-              <p className="text-sm font-mono text-muted-foreground leading-relaxed">
-                Fund your vault with USDC to start streaming salaries
-              </p>
-            </div>
-
-            <div className="p-4 bg-accent/20  border-l-4 border-primary space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">
-                  2
-                </span>
-                <h4 className="font-heading font-bold text-foreground">Create Stream</h4>
-              </div>
-              <p className="text-sm font-mono text-muted-foreground leading-relaxed">
-                Set up infinite or finite payment streams for employees
-              </p>
-            </div>
-
-            <div className="p-4 bg-accent/20  border-l-4 border-primary space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">
-                  3
-                </span>
-                <h4 className="font-heading font-bold text-foreground">Employees Earn</h4>
-              </div>
-              <p className="text-sm font-mono text-muted-foreground leading-relaxed">
-                Your employees earn salary per second and withdraw anytime
-              </p>
-            </div>
+            <InfoCard number={1} title="Deposit" description="Fund your vault with USDC to start streaming salaries" />
+            <InfoCard
+              number={2}
+              title="Create Stream"
+              description="Set up infinite or finite payment streams for employees"
+            />
+            <InfoCard
+              number={3}
+              title="Employees Earn"
+              description="Your employees earn salary per second and withdraw anytime"
+            />
           </div>
         </div>
 

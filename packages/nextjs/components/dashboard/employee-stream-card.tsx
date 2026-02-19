@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Skeleton } from "../ui/skeleton";
 import { UpdateStreamModal } from "./update-stream-modal";
 import { Clock, DollarSign, Info, TrendingUp, Wallet } from "lucide-react";
@@ -15,13 +15,13 @@ import { EStreamType } from "~~/types/type";
 
 type StreamInfoData = readonly [bigint, bigint, bigint, bigint, EStreamType, bigint, bigint, bigint, boolean, boolean];
 
-interface EmployeeStreamCardProps {
+type EmployeeStreamCardProps = React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> & {
   employer: string;
   employee: string;
   mode?: "employer" | "employee";
-}
+};
 
-export function EmployeeStreamCard({ employer, employee, mode = "employer" }: EmployeeStreamCardProps) {
+export function EmployeeStreamCard({ employer, employee, mode = "employer", ...props }: EmployeeStreamCardProps) {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   const { data } = useScaffoldReadContract({
@@ -101,7 +101,10 @@ export function EmployeeStreamCard({ employer, employee, mode = "employer" }: Em
 
   if (!streamInfo) {
     return (
-      <div className="relative bg-card border border-border duration-300 overflow-hidden w-full min-w-lg md:w-[calc(50%_-_8px)] p-4 flex flex-col gap-5">
+      <div
+        className="relative bg-card border border-border duration-300 overflow-hidden w-full min-w-lg md:w-[calc(50%_-_8px)] p-4 flex flex-col gap-5"
+        {...props}
+      >
         <Skeleton className="h-12" />
         <div className="flex gap-3 justify-center items-center">
           <Skeleton className="h-[71px] w-1/3" />
@@ -138,7 +141,13 @@ export function EmployeeStreamCard({ employer, employee, mode = "employer" }: Em
 
   return (
     <>
-      <div className="group relative bg-card border border-border hover:border-primary/50 transition-all duration-300 overflow-hidden w-full min-w-lg lg:w-[calc(50%_-_8px)]">
+      <div
+        {...props}
+        className={cn(
+          "group relative bg-card border border-border hover:border-primary/50 transition-all duration-300 overflow-hidden w-full min-w-lg lg:w-[calc(50%_-_8px)]",
+          props.className,
+        )}
+      >
         {/* Gradient Background Decoration */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
@@ -222,7 +231,7 @@ export function EmployeeStreamCard({ employer, employee, mode = "employer" }: Em
 
                 {/* Right: Rate Display */}
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                  <div className="bg-background/80 border border-primary/20 rounded-md px-3 py-2">
+                  <div className="bg-background/80 border border-primary/20 px-3 py-2">
                     <p className="font-mono font-bold text-sm text-primary">
                       ${ratePerSecondUSDC.toFixed(6)}
                       <span className="text-xs text-muted-foreground">/s</span>
@@ -256,7 +265,7 @@ export function EmployeeStreamCard({ employer, employee, mode = "employer" }: Em
           <div className="h-[140px] overflow-hidden">
             {!isInfinite ? (
               // Finite Stream: Show Timeline
-              <div className="bg-muted/20 border border-border rounded-lg p-4 h-full flex flex-col justify-center">
+              <div className="bg-muted/20 border border-border p-4 h-full flex flex-col justify-center">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-3">
                   Stream Timeline
                 </p>
@@ -277,7 +286,7 @@ export function EmployeeStreamCard({ employer, employee, mode = "employer" }: Em
               </div>
             ) : (
               // Infinite Stream: Show Stream Info
-              <div className="bg-muted/20 border border-border rounded-lg p-4 h-full flex flex-col justify-center">
+              <div className="bg-muted/20 border border-border p-4 h-full flex flex-col justify-center">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-3 flex items-center gap-2">
                   <Info className="w-3 h-3" />
                   Stream Information
