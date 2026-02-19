@@ -1,6 +1,6 @@
 import { CheckCircle, Pause, Play } from "lucide-react";
 
-export const getStatusIcon = status => {
+export const getStatusIcon = (status: any) => {
   switch (status) {
     case "Active":
       return <Play className="w-3 h-3" />;
@@ -13,7 +13,7 @@ export const getStatusIcon = status => {
   }
 };
 
-export const getStatusColor = status => {
+export const getStatusColor = (status: any) => {
   switch (status) {
     case "Active":
       return "bg-green-100 text-green-800";
@@ -26,6 +26,6 @@ export const getStatusColor = status => {
   }
 };
 
-export const formatAddress = address => {
+export const formatAddress = (address: any) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
