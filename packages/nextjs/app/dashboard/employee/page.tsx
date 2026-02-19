@@ -1,6 +1,6 @@
 "use client";
 
-import { Briefcase, Users, Clock } from "lucide-react";
+import { Briefcase, RefreshCw, Users } from "lucide-react";
 import { useAccount } from "wagmi";
 import { EmployeeStreamCard } from "~~/components/dashboard/employee-stream-card";
 import { EmployerVaultCard } from "~~/components/dashboard/employer-vault-card";
@@ -12,64 +12,20 @@ export default function EmployeePage() {
 
   const { employers, isLoading } = useEmployersWithStreams(address);
 
-  // ✅ Enhanced loading state with scanning info
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="py-4 bg-muted/10 mb-6">
-            <h1 className="text-5xl sm:text-6xl font-heading font-bold text-foreground mb-2">Employee Dashboard</h1>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-muted-foreground animate-pulse" />
-              <p className="font-mono text-muted-foreground text-sm uppercase tracking-wider">
-                Scanning blockchain for your streams...
-              </p>
-            </div>
-          </div>
-
-          {/* Loading skeleton */}
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="border bg-card border-border p-6 animate-pulse">
-                <div className="h-20 bg-muted/20 rounded"></div>
-              </div>
-              <div className="border bg-card border-border p-6 animate-pulse">
-                <div className="h-20 bg-muted/20 rounded"></div>
-              </div>
-            </div>
-
-            <div className="border-2 border-dashed border-muted-foreground/30 p-12 text-center bg-muted/5">
-              <div className="flex flex-col items-center gap-3">
-                <Clock className="w-12 h-12 text-muted-foreground/50 animate-spin" />
-                <p className="text-sm text-muted-foreground font-mono">
-                  Please wait while we scan the blockchain for your stream history...
-                </p>
-                <p className="text-xs text-muted-foreground/70 font-mono">
-                  This may take a few seconds depending on network conditions
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Page Header - ✅ Enhanced with scan complete indicator */}
         <div className="py-4 bg-muted/10">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <h1 className="text-5xl sm:text-6xl font-heading font-bold text-foreground mb-2">
-                Employee Dashboard
-              </h1>
+              <div className="flex gap-4 justify-center items-center">
+                <h1 className="text-5xl sm:text-6xl font-heading font-bold text-foreground mb-2">Employee Dashboard</h1>
+                {isLoading ? <RefreshCw className="w-12 h-12 text-muted-foreground/50 animate-spin" /> : null}
+              </div>
               <p className="font-mono text-muted-foreground text-sm uppercase tracking-wider">
                 Track your salary streams and earnings
               </p>
             </div>
-            {/* ✅ Scan complete indicator */}
             {employers.length > 0 && (
               <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-green-500/10 border border-green-500/20 rounded">
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
@@ -104,7 +60,8 @@ export default function EmployeePage() {
               You don't have any salary streams yet. Ask your employer to create a stream for you on GainJar!
             </p>
             <p className="text-xs text-muted-foreground/70 font-mono mt-4">
-              Blockchain scan complete • No streams found
+              Please wait while we scan the blockchain for your stream history... <br /> This may take a few seconds
+              depending on network conditions
             </p>
           </div>
         )}

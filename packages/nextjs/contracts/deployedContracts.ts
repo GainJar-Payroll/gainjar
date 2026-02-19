@@ -1948,7 +1948,7 @@ const deployedContracts = {
       deployedOnBlock: 239687204,
     },
     GainJar: {
-      address: "0xbbe9255bfa52585ade51343aca6179e422b8695c",
+      address: "0x5e3290014c1a1d75aee675e511d4d4ad4f8d3f7d",
       abi: [
         {
           type: "constructor",
@@ -3186,7 +3186,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 241938535,
+      deployedOnBlock: 243782709,
     },
   },
 } as const;

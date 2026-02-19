@@ -6,7 +6,7 @@ import { useScaffoldEventHistory } from "./scaffold-eth";
  * by reading StreamCreated events
  */
 export function useEmployersWithStreams(employeeAddress: string | undefined) {
-  const { data: streamCreatedEvents, isLoading } = useScaffoldEventHistory({
+  const { data: streamCreatedEvents, isFetchingNewEvent: isLoading } = useScaffoldEventHistory({
     contractName: "GainJar",
     eventName: "StreamCreated",
     fromBlock: 241942168n,
