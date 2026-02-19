@@ -8,7 +8,7 @@ import { Button } from "~~/components/ui/button";
 import { Input } from "~~/components/ui/input";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
-type FilterType = "all" | "active" | "paused" | "expired";
+// type FilterType = "all" | "active" | "paused" | "expired";
 
 interface StreamsListProps {
   limit?: number;
