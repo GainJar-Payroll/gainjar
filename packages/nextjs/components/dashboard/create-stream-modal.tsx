@@ -65,7 +65,7 @@ export function CreateStreamModal() {
     onSuccess: () => setTimeout(() => setOpen(false), 2000),
   });
 
-  const form = useForm<FormData>({
+  const form = useForm<z.input<typeof formSchema>, any, z.output<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       receiver: "",
