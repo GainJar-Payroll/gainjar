@@ -4,18 +4,17 @@ import { useEffect, useMemo } from "react";
 import { ContractUI } from "./ContractUI";
 import "@scaffold-ui/debug-contracts/styles.css";
 import { useSessionStorage } from "usehooks-ts";
+import { parseUnits } from "viem";
 import { useAccount } from "wagmi";
 import { BarsArrowUpIcon } from "@heroicons/react/20/solid";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { ContractName, GenericContract } from "~~/utils/scaffold-eth/contract";
 import { useAllContracts } from "~~/utils/scaffold-eth/contractsData";
-import { parseUnits } from "viem";
-
 
 const selectedContractStorageKey = "scaffoldEth2.selectedContract";
 
 export function DebugContracts() {
-  const { address}  = useAccount();
+  const { address } = useAccount();
   const contractsData = useAllContracts();
   const { writeContractAsync: mintTokens } = useScaffoldWriteContract("MockERC20");
   const contractNames = useMemo(

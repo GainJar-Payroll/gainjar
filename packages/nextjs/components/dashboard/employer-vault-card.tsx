@@ -48,7 +48,8 @@ export function EmployerVaultCard({ employer, employee, index }: EmployerVaultCa
 
   const [balance = 0n, , daysRemaining = 0n, status = 0] =
     (vaultHealth as readonly [bigint, bigint, bigint, EVaultStatus, boolean, bigint]) || [];
-  const [ratePerSecond = 0n, , , , , , , withdrawableNow = 0n] =
+  // const [ratePerSecond = 0n, , , , , , , withdrawableNow = 0n] =
+  const [, , , , , , , withdrawableNow = 0n] =
     (streamInfo as readonly [bigint, bigint, bigint, bigint, number, bigint, bigint, bigint, boolean, boolean]) || [];
 
   // const withdrawableLive = useLiveBalance(withdrawableNow, ratePerSecond, true, true);
@@ -162,7 +163,8 @@ export function EmployerVaultCard({ employer, employee, index }: EmployerVaultCa
                     <p className="text-xs uppercase tracking-wider font-bold text-destructive">Liquidation Available</p>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                    Your employer's vault is critically low. You can liquidate to protect employees and earn a reward.
+                    Your employer&apos;s vault is critically low. You can liquidate to protect employees and earn a
+                    reward.
                   </p>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Estimated Reward:</span>

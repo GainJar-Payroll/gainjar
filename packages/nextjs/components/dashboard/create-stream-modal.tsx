@@ -87,7 +87,7 @@ export function CreateStreamModal() {
   const maxAdditionalFlowRate = vaultData
     ? (vaultData as readonly [bigint, bigint, bigint, number, boolean, bigint])[5]
     : 0n;
-  const formattedBalance = formatUnits(vaultBalance, 6);
+  // const formattedBalance = formatUnits(vaultBalance, 6);
 
   const { writeContractAsync } = useScaffoldWriteContract({
     contractName: "GainJar",

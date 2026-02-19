@@ -35,7 +35,7 @@ interface UpdateStreamModalProps {
   onClose: () => void;
 }
 
-export function UpdateStreamModal({ employer, employee, currentRate, streamType, onClose }: UpdateStreamModalProps) {
+export function UpdateStreamModal({ employee, currentRate, streamType, onClose }: UpdateStreamModalProps) {
   const isInfinite = streamType === 0;
 
   const { step, isLoading, handleTransaction, reset } = useTransactionFlow({

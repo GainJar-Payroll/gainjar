@@ -41,7 +41,7 @@ export default function VaultStatus() {
     );
   }
 
-  const [balance, flowRate, daysRemaining, status, canCreateNewStream, maxAdditionalFlowRate] = vaultData;
+  const [balance, flowRate, daysRemaining, status, canCreateNewStream] = vaultData;
   const vaultStatus = VaultStatusLabel[status];
   const balanceInUSDC = Number(balance) / 1e6;
 

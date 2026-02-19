@@ -24,7 +24,7 @@ export default function VaultRecommendations() {
     return null;
   }
 
-  const [balance, flowRate, daysRemaining, status] = vaultData;
+  const [, flowRate, daysRemaining, status] = vaultData;
 
   const flowRateInUSDC = Number(flowRate) / 1e6;
   const daysRemainingNum = Number(daysRemaining);
