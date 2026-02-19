@@ -619,7 +619,8 @@ export default function GainJarLanding() {
                 <h4 className="font-heading font-bold text-xl mb-4">Removes super-user risk</h4>
                 <p className="text-muted-foreground leading-relaxed">
                   Traditional databases rely on a single administrator who can modify records. A blockchain ledger
-                  removes the "super-user" risk, ensuring that the financial record remains the single source of truth.
+                  removes the &quot;super-user&quot; risk, ensuring that the financial record remains the single source
+                  of truth.
                 </p>
               </div>
             </div>

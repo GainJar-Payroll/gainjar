@@ -2,21 +2,12 @@
 
 import { useState } from "react";
 import { formatUnits } from "viem";
-import {
-  useScaffoldReadContract,
-  useScaffoldWriteContract,
-} from "~~/hooks/scaffold-eth";
-import { UpgradeModal } from "~~/components/dashboard/upgrade-modal"
-import { Button } from '~~/components/ui/button'
+import { UpgradeModal } from "~~/components/dashboard/upgrade-modal";
 import { Badge } from "~~/components/ui/badge";
+import { Button } from "~~/components/ui/button";
+import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 
-export const EmployeeCard = ({
-  employer,
-  employee,
-}: {
-  employer: string;
-  employee: string;
-}) => {
+export const EmployeeCard = ({ employer, employee }: { employer: string; employee: string }) => {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
@@ -28,18 +19,8 @@ export const EmployeeCard = ({
 
   if (!streamInfo) return null;
 
-  const [
-    ratePerSecond,
-    startTime,
-    endTime,
-    totalAmount,
-    streamType,
-    totalEarned,
-    totalWithdrawn,
-    withdrawableNow,
-    isActive,
-    isExpired,
-  ] = streamInfo;
+  const [ratePerSecond, startTime, endTime, totalAmount, streamType, , , withdrawableNow, isActive, isExpired] =
+    streamInfo;
 
   const hourlyRate = Number(formatUnits(ratePerSecond * 3600n, 6));
   const available = Number(formatUnits(withdrawableNow, 6));
@@ -56,9 +37,7 @@ export const EmployeeCard = ({
         <div className="flex justify-between items-start mb-6">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2">
-              <p className="truncate font-bold text-lg text-foreground font-mono">
-                {employee}
-              </p>
+              <p className="truncate font-bold text-lg text-foreground font-mono">{employee}</p>
               <StatusBadge active={isActive} expired={isExpired} />
             </div>
             <span
@@ -70,23 +49,13 @@ export const EmployeeCard = ({
         </div>
 
         <div className="grid grid-cols-2 gap-6">
-          <Stat
-            label="Hourly Rate"
-            value={`$${hourlyRate.toFixed(2)}`}
-            color="text-blue-400"
-          />
-          <Stat
-            label="Available"
-            value={`$${available.toFixed(2)}`}
-            color="text-green-400"
-          />
+          <Stat label="Hourly Rate" value={`$${hourlyRate.toFixed(2)}`} color="text-blue-400" />
+          <Stat label="Available" value={`$${available.toFixed(2)}`} color="text-green-400" />
         </div>
 
         {/* Action area hint */}
         <div className="mt-4 pt-4 border-t border-border/50 flex justify-between items-center">
-          <p className="text-[10px] text-muted-foreground font-mono">
-            Click for details & actions
-          </p>
+          <p className="text-[10px] text-muted-foreground font-mono">Click for details & actions</p>
           <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
         </div>
       </div>
@@ -124,39 +93,18 @@ export const EmployeeCard = ({
 
 const Stat = ({ label, value, color }: any) => (
   <div>
-    <p className="text-[10px] font-mono text-muted-foreground uppercase mb-1">
-      {label}
-    </p>
+    <p className="text-[10px] font-mono text-muted-foreground uppercase mb-1">{label}</p>
     <p className={`text-xl font-bold font-mono ${color}`}>{value}</p>
   </div>
 );
 
 const StatusBadge = ({ active, expired }: any) => {
-  if (expired)
-    return (
-      <span className="badge badge-error text-[10px] py-0 px-2">EXPIRED</span>
-    );
-  if (active)
-    return (
-      <span className="badge badge-success text-[10px] py-0 px-2">ACTIVE</span>
-    );
-  return (
-    <span className="badge badge-ghost text-[10px] py-0 px-2">PAUSED</span>
-  );
+  if (expired) return <span className="badge badge-error text-[10px] py-0 px-2">EXPIRED</span>;
+  if (active) return <span className="badge badge-success text-[10px] py-0 px-2">ACTIVE</span>;
+  return <span className="badge badge-ghost text-[10px] py-0 px-2">PAUSED</span>;
 };
 
-
-
-const DetailModal = ({
-  employer,
-  employee,
-  streamInfo,
-  onClose,
-  streamType,
-  startTime,
-  endTime,
-  onUpgrade,
-}: any) => {
+const DetailModal = ({ employer, employee, streamInfo, onClose, streamType, onUpgrade }: any) => {
   const [activeTab, setActiveTab] = useState("info");
   // Ambil data safe withdrawable
   const { data: safeData } = useScaffoldReadContract({
@@ -164,7 +112,6 @@ const DetailModal = ({
     functionName: "getSafeWithdrawableAmount",
     args: [employer, employee],
   });
-
 
   const { writeContractAsync: withdraw } = useScaffoldWriteContract({
     contractName: "GainJar",
@@ -197,11 +144,8 @@ const DetailModal = ({
           {activeTab === "info" ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
+                <Stat label="Rate Per Second" value={`$${Number(formatUnits(streamInfo[0], 6)).toFixed(6)}`} />
                 <Stat
-                  label="Rate Per Second"
-                  value={`$${Number(formatUnits(streamInfo[0], 6)).toFixed(6)}`}
-                />
-                 <Stat
                   label="Rate Per Day"
                   value={`$${Number(formatUnits(streamInfo[0] * BigInt(24 * 60 * 60), 6)).toFixed(2)}`}
                 />
@@ -209,22 +153,15 @@ const DetailModal = ({
                   label="Rate Per Month"
                   value={`$${Number(formatUnits(streamInfo[0] * BigInt(30 * 24 * 60 * 60), 6)).toFixed(2)}`}
                 />
-                 {streamType !== 0 && 
-                 <Stat
-                  label="Total salary"
-                  value={`$${Number(formatUnits(streamInfo[0] * BigInt(24 * 60 * 60), 6)).toFixed(2)}`}
-                />
-                }
+                {streamType !== 0 && (
+                  <Stat
+                    label="Total salary"
+                    value={`$${Number(formatUnits(streamInfo[0] * BigInt(24 * 60 * 60), 6)).toFixed(2)}`}
+                  />
+                )}
 
-                <Stat
-                  label="Total Earned"
-                  value={`$${Number(formatUnits(streamInfo[5], 6)).toFixed(2)}`}
-                />
-                <Stat
-                  label="Withdrawn"
-                  value={`$${Number(formatUnits(streamInfo[6], 6)).toFixed(2)}`}
-                />
-               
+                <Stat label="Total Earned" value={`$${Number(formatUnits(streamInfo[5], 6)).toFixed(2)}`} />
+                <Stat label="Withdrawn" value={`$${Number(formatUnits(streamInfo[6], 6)).toFixed(2)}`} />
               </div>
               <div className="bg-gray-50 p-4 rounded-xl font-mono text-xs space-y-2 border border-gray-100">
                 <p className="text-gray-600">
@@ -246,14 +183,14 @@ const DetailModal = ({
                   Safe to Withdraw Now
                 </p>
                 <p className="text-4xl font-black text-green-600 font-mono">
-                  $
-                  {safeData
-                    ? Number(formatUnits(safeData[1], 6)).toFixed(2)
-                    : "0.00"}
+                  ${safeData ? Number(formatUnits(safeData[1], 6)).toFixed(2) : "0.00"}
                 </p>
                 {safeData?.[2] && (
                   <div className="mt-2 flex justify-center">
-                    <Badge variant="default" className="bg-green-50 text-green-700 hover:bg-green-50! border-green-100! rounded-full uppercase text-[10px] font-black tracking-widest ring-0!">
+                    <Badge
+                      variant="default"
+                      className="bg-green-50 text-green-700 hover:bg-green-50! border-green-100! rounded-full uppercase text-[10px] font-black tracking-widest ring-0!"
+                    >
                       Fully Secured
                     </Badge>
                   </div>
@@ -270,16 +207,16 @@ const DetailModal = ({
         </div>
 
         <div className="p-4 bg-gray-50 flex gap-3 border-t border-gray-100">
-          <Button 
-            onClick={onUpgrade} 
+          <Button
+            onClick={onUpgrade}
             variant="outline"
             className="flex-1 py-6 bg-white border-2 border-gray-200 hover:bg-white hover:border-gray-400 text-gray-700 font-bold rounded-2xl transition-all shadow-none"
           >
-            {Number(streamType) === 0 ? "Update Rate": "Update Fee"}
+            {Number(streamType) === 0 ? "Update Rate" : "Update Fee"}
           </Button>
-          <Button 
-            onClick={onClose} 
-            variant="ghost" 
+          <Button
+            onClick={onClose}
+            variant="ghost"
             className="px-8 py-6 text-gray-400 hover:text-gray-600 font-bold transition-all rounded-2xl hover:bg-gray-100"
           >
             Close

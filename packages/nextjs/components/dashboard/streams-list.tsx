@@ -7,7 +7,6 @@ import { useAccount } from "wagmi";
 import { Button } from "~~/components/ui/button";
 import { Input } from "~~/components/ui/input";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
-import { cn } from "~~/lib/utils";
 
 type FilterType = "all" | "active" | "paused" | "expired";
 
@@ -18,7 +17,7 @@ interface StreamsListProps {
 
 export function StreamsList({ limit, showFilters = true }: StreamsListProps) {
   const { address } = useAccount();
-  const [filter, setFilter] = useState<FilterType>("all");
+  // const [filter, setFilter] = useState<FilterType>("all");
   const [search, setSearch] = useState("");
 
   // Fetch active employees
@@ -46,7 +45,12 @@ export function StreamsList({ limit, showFilters = true }: StreamsListProps) {
     }
 
     return result;
-  }, [allEmployees, filter, search, limit]);
+  }, [
+    allEmployees,
+    search,
+    limit,
+    //,filter
+  ]);
 
   // Loading state
   if (isLoading) {
@@ -161,27 +165,27 @@ export function StreamsList({ limit, showFilters = true }: StreamsListProps) {
 }
 
 // Filter Button Component
-function FilterButton({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <Button
-      variant={active ? "default" : "outline"}
-      size="sm"
-      onClick={onClick}
-      className={cn(
-        "uppercase tracking-wider text-[10px] font-bold hover:bg-primary hover:text-primary-foreground",
-        active && "border-foreground",
-        !active && "border-transparent",
-      )}
-    >
-      {children}
-    </Button>
-  );
-}
+// function FilterButton({
+//   active,
+//   onClick,
+//   children,
+// }: {
+//   active: boolean;
+//   onClick: () => void;
+//   children: React.ReactNode;
+// }) {
+//   return (
+//     <Button
+//       variant={active ? "default" : "outline"}
+//       size="sm"
+//       onClick={onClick}
+//       className={cn(
+//         "uppercase tracking-wider text-[10px] font-bold hover:bg-primary hover:text-primary-foreground",
+//         active && "border-foreground",
+//         !active && "border-transparent",
+//       )}
+//     >
+//       {children}
+//     </Button>
+//   );
+// }

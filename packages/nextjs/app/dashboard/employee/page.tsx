@@ -57,7 +57,7 @@ export default function EmployeePage() {
             </div>
             <h3 className="font-heading font-bold text-2xl mb-3">No Active Streams</h3>
             <p className="text-sm text-muted-foreground font-mono max-w-md mx-auto leading-relaxed">
-              You don't have any salary streams yet. Ask your employer to create a stream for you on GainJar!
+              You don&apos;t have any salary streams yet. Ask your employer to create a stream for you on GainJar!
             </p>
             <p className="text-xs text-muted-foreground/70 font-mono mt-4">
               Please wait while we scan the blockchain for your stream history... <br /> This may take a few seconds
@@ -147,8 +147,9 @@ export default function EmployeePage() {
         <div className="bg-card border border-border p-4">
           <p className="text-xs font-mono text-muted-foreground mb-3 font-semibold">About Liquidation</p>
           <p className="text-xs font-mono text-muted-foreground leading-relaxed">
-            If your employer's vault runs critically low, you can liquidate to protect all employees. This pauses all
-            streams and distributes earned amounts. You'll earn a reward for helping maintain the system's safety.
+            If your employer&apos;s vault runs critically low, you can liquidate to protect all employees. This pauses
+            all streams and distributes earned amounts. You&apos;ll earn a reward for helping maintain the system&apos;s
+            safety.
           </p>
         </div>
       </div>
