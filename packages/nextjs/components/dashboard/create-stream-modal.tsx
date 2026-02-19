@@ -24,9 +24,9 @@ const formSchema = z
   .object({
     receiver: z.string().startsWith("0x").length(42),
     streamType: z.enum(["monthly", "project"]),
-    monthlySalary: z.coerce.number().optional(),
-    totalPayment: z.coerce.number().optional(),
-    projectDuration: z.coerce.number().optional(),
+    monthlySalary: z.number().optional(),
+    totalPayment: z.number().optional(),
+    projectDuration: z.number().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.streamType === "monthly" && (!data.monthlySalary || data.monthlySalary <= 0)) {
@@ -65,7 +65,7 @@ export function CreateStreamModal() {
     onSuccess: () => setTimeout(() => setOpen(false), 2000),
   });
 
-  const form = useForm<z.input<typeof formSchema>, any, z.output<typeof formSchema>>({
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       receiver: "",

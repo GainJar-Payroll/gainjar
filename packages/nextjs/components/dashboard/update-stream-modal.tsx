@@ -16,12 +16,12 @@ import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useTransactionFlow } from "~~/hooks/useTransactionFlow";
 
 const infiniteSchema = z.object({
-  newMonthlyRate: z.coerce.number().positive("Rate must be positive"),
+  newMonthlyRate: z.number().positive("Rate must be positive"),
 });
 
 const finiteSchema = z.object({
-  additionalAmount: z.coerce.number().positive("Amount must be positive"),
-  additionalDays: z.coerce.number().positive("Days must be positive"),
+  additionalAmount: z.number().positive("Amount must be positive"),
+  additionalDays: z.number().positive("Days must be positive"),
 });
 
 type InfiniteFormData = z.infer<typeof infiniteSchema>;
