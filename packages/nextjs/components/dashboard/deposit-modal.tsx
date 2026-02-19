@@ -16,7 +16,7 @@ import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContr
 import { useTransactionFlow } from "~~/hooks/useTransactionFlow";
 
 const formSchema = z.object({
-  amount: z.coerce.number().positive().min(1, "Minimum 1 USDC"),
+  amount: z.number().positive().min(1, "Minimum 1 USDC"),
 });
 
 type FormData = z.infer<typeof formSchema>;
