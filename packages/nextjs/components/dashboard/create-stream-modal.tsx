@@ -83,7 +83,7 @@ export function CreateStreamModal() {
     watch: true,
   });
 
-  const vaultBalance = vaultData ? (vaultData as readonly [bigint, bigint, bigint, number, boolean, bigint])[0] : 0n;
+  // const vaultBalance = vaultData ? (vaultData as readonly [bigint, bigint, bigint, number, boolean, bigint])[0] : 0n;
   const maxAdditionalFlowRate = vaultData
     ? (vaultData as readonly [bigint, bigint, bigint, number, boolean, bigint])[5]
     : 0n;
