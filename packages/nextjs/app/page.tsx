@@ -62,7 +62,7 @@ export default function GainJarLanding() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-16">
-              <Link href="/dashboard">
+              <Link href="/dashboard/employer">
                 <Button size="lg" className="uppercase tracking-wider font-medium">
                   Launch Application
                 </Button>
