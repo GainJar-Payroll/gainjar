@@ -220,7 +220,16 @@ export function UpdateStreamModal({ employee, currentRate, streamType, onClose }
                     <AmountInput
                       label="New Monthly Rate (USDC)"
                       value={field?.value === 0 ? "" : (field?.value ?? 0)}
-                      onChange={e => field.onChange(e)}
+                      onChange={e => {
+                        const val = e.target ? e.target.value : e;
+                        if (val === "") {
+                          field.onChange("");
+                          return;
+                        }
+                        const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
+                        const parsedVal = parseFloat(cleanVal);
+                        field.onChange(parsedVal);
+                      }}
                       error={fieldState.error}
                       disabled={isLoading}
                       helperText="Set new monthly salary amount"
@@ -298,7 +307,16 @@ export function UpdateStreamModal({ employee, currentRate, streamType, onClose }
                     <AmountInput
                       label="Additional Amount (USDC)"
                       value={field?.value === 0 ? "" : (field?.value ?? 0)}
-                      onChange={e => field.onChange(e)}
+                      onChange={e => {
+                        const val = e.target ? e.target.value : e;
+                        if (val === "") {
+                          field.onChange("");
+                          return;
+                        }
+                        const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
+                        const parsedVal = parseFloat(cleanVal);
+                        field.onChange(parsedVal);
+                      }}
                       error={fieldState.error}
                       disabled={isLoading}
                       helperText="Amount to add to the stream"
@@ -312,8 +330,17 @@ export function UpdateStreamModal({ employee, currentRate, streamType, onClose }
                   render={({ field, fieldState }) => (
                     <AmountInput
                       label="Additional Days"
-                      value={field.value || 0}
-                      onChange={e => field.onChange(e)}
+                      value={field?.value === 0 ? "" : (field?.value ?? 0)}
+                      onChange={e => {
+                        const val = e.target ? e.target.value : e;
+                        if (val === "") {
+                          field.onChange("");
+                          return;
+                        }
+                        const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
+                        const parsedVal = parseFloat(cleanVal);
+                        field.onChange(parsedVal);
+                      }}
                       error={fieldState.error}
                       disabled={isLoading}
                       helperText="Number of days to extend"
