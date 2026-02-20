@@ -128,7 +128,8 @@ export function DepositModal() {
                         return;
                       }
                       const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
-                      field.onChange(cleanVal);
+                      const parsedVal = parseFloat(cleanVal);
+                      field.onChange(parsedVal);
                     }}
                     error={fieldState.error}
                     maxBalance={formattedBalance}

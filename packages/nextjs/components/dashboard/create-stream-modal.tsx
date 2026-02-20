@@ -13,25 +13,11 @@ import { formatUnits, parseUnits } from "viem";
 import { useAccount } from "wagmi";
 import * as z from "zod";
 import { Button } from "~~/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "~~/components/ui/card";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "~~/components/ui/field";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "~~/components/ui/card";
+import { Field, FieldError, FieldGroup, FieldLabel } from "~~/components/ui/field";
 import { Label } from "~~/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "~~/components/ui/radio-group";
-import {
-  useScaffoldReadContract,
-  useScaffoldWriteContract,
-} from "~~/hooks/scaffold-eth";
+import { useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useTransactionFlow } from "~~/hooks/useTransactionFlow";
 
 const formSchema = z
@@ -43,10 +29,7 @@ const formSchema = z
     projectDuration: z.number().optional(),
   })
   .superRefine((data, ctx) => {
-    if (
-      data.streamType === "monthly" &&
-      (!data.monthlySalary || data.monthlySalary <= 0)
-    ) {
+    if (data.streamType === "monthly" && (!data.monthlySalary || data.monthlySalary <= 0)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Required",
@@ -102,9 +85,7 @@ export function CreateStreamModal() {
 
   // const vaultBalance = vaultData ? (vaultData as readonly [bigint, bigint, bigint, number, boolean, bigint])[0] : 0n;
   const maxAdditionalFlowRate = vaultData
-    ? (
-        vaultData as readonly [bigint, bigint, bigint, number, boolean, bigint]
-      )[5]
+    ? (vaultData as readonly [bigint, bigint, bigint, number, boolean, bigint])[5]
     : 0n;
   // const formattedBalance = formatUnits(vaultBalance, 6);
 
@@ -129,9 +110,7 @@ export function CreateStreamModal() {
     const durationInSeconds = BigInt(duration * 24 * 60 * 60);
     const monthInSeconds = BigInt(30 * 24 * 60 * 60);
 
-    const upcomingFlowRate = isMonthly
-      ? rawAmount / monthInSeconds
-      : rawAmount / durationInSeconds;
+    const upcomingFlowRate = isMonthly ? rawAmount / monthInSeconds : rawAmount / durationInSeconds;
 
     const actualMonthlyAmount = upcomingFlowRate * monthInSeconds;
     const actualMonthly = Number(formatUnits(actualMonthlyAmount, 6));
@@ -181,13 +160,7 @@ export function CreateStreamModal() {
       maxAllowedFlowRate: Number(formatUnits(maxFlowRate, 6)),
       maxAdditionalFlowRateExceeded: upcomingFlowRate > maxFlowRate,
     };
-  }, [
-    watchType,
-    watchMonthlySalary,
-    watchTotalPayment,
-    watchDuration,
-    maxAdditionalFlowRate,
-  ]);
+  }, [watchType, watchMonthlySalary, watchTotalPayment, watchDuration, maxAdditionalFlowRate]);
 
   // const hasEnoughBalance = preview ? vaultBalance >= parseUnits(preview.total, 6) : false;
 
@@ -199,13 +172,7 @@ export function CreateStreamModal() {
   }, [open, form, reset]);
 
   async function onSubmit(data: FormData) {
-    const amount = parseUnits(
-      (data.streamType === "monthly"
-        ? data.monthlySalary!
-        : data.totalPayment!
-      ).toString(),
-      6,
-    );
+    const amount = parseUnits((data.streamType === "monthly" ? data.monthlySalary! : data.totalPayment!).toString(), 6);
 
     await handleTransaction(async () => {
       if (data.streamType === "monthly") {
@@ -216,11 +183,7 @@ export function CreateStreamModal() {
       } else {
         await writeContractAsync({
           functionName: "createFiniteStreamDays",
-          args: [
-            data.receiver as `0x${string}`,
-            amount,
-            BigInt(data.projectDuration!),
-          ],
+          args: [data.receiver as `0x${string}`, amount, BigInt(data.projectDuration!)],
         });
       }
     });
@@ -243,28 +206,15 @@ export function CreateStreamModal() {
           </CardHeader>
 
           <CardContent>
-            <form
-              id="form"
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-6"
-            >
+            <form id="form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <Controller
                 name="receiver"
                 control={form.control}
                 render={({ field, fieldState }) => (
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel className="text-xs uppercase tracking-wider">
-                      Employee Wallet Address
-                    </FieldLabel>
-                    <Input
-                      {...field}
-                      placeholder="0x..."
-                      disabled={isLoading}
-                      className="font-mono text-sm"
-                    />
-                    {fieldState.invalid && (
-                      <FieldError errors={[fieldState.error]} />
-                    )}
+                    <FieldLabel className="text-xs uppercase tracking-wider">Employee Wallet Address</FieldLabel>
+                    <Input {...field} placeholder="0x..." disabled={isLoading} className="font-mono text-sm" />
+                    {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                     {!fieldState.invalid && field.value && (
                       <p className="text-xs text-muted-foreground mt-1 font-mono">
                         → {field.value.slice(0, 6)}...{field.value.slice(-4)}
@@ -276,52 +226,24 @@ export function CreateStreamModal() {
 
               {/* Stream Type */}
               <div className="border-l-4 border-foreground pl-6 py-4 bg-muted/10">
-                <FieldLabel className="text-xs uppercase tracking-wider mb-4 block">
-                  Payment Type
-                </FieldLabel>
+                <FieldLabel className="text-xs uppercase tracking-wider mb-4 block">Payment Type</FieldLabel>
                 <Controller
                   name="streamType"
                   control={form.control}
                   render={({ field }) => (
-                    <RadioGroup
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      className="space-y-4"
-                    >
-                      <Label
-                        htmlFor="monthly"
-                        className="flex items-start space-x-3 cursor-pointer"
-                      >
-                        <RadioGroupItem
-                          value="monthly"
-                          id="monthly"
-                          className="mt-1"
-                        />
+                    <RadioGroup value={field.value} onValueChange={field.onChange} className="space-y-4">
+                      <Label htmlFor="monthly" className="flex items-start space-x-3 cursor-pointer">
+                        <RadioGroupItem value="monthly" id="monthly" className="mt-1" />
                         <div>
-                          <p className="font-heading font-bold text-lg">
-                            Monthly Salary
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Streams indefinitely
-                          </p>
+                          <p className="font-heading font-bold text-lg">Monthly Salary</p>
+                          <p className="text-xs text-muted-foreground mt-1">Streams indefinitely</p>
                         </div>
                       </Label>
-                      <Label
-                        htmlFor="project"
-                        className="flex items-start space-x-3 cursor-pointer"
-                      >
-                        <RadioGroupItem
-                          value="project"
-                          id="project"
-                          className="mt-1"
-                        />
+                      <Label htmlFor="project" className="flex items-start space-x-3 cursor-pointer">
+                        <RadioGroupItem value="project" id="project" className="mt-1" />
                         <div>
-                          <p className="font-heading font-bold text-lg">
-                            Project Payment
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Fixed duration
-                          </p>
+                          <p className="font-heading font-bold text-lg">Project Payment</p>
+                          <p className="text-xs text-muted-foreground mt-1">Fixed duration</p>
                         </div>
                       </Label>
                     </RadioGroup>
@@ -338,15 +260,13 @@ export function CreateStreamModal() {
                     <AmountInput
                       label="Monthly Salary"
                       value={field?.value === 0 ? "" : (field?.value ?? 0)}
-                      onChange={(e) => {
+                      onChange={e => {
                         const val = e.target ? e.target.value : e;
                         if (val === "") {
                           field.onChange("");
                           return;
                         }
-                        const cleanVal = val
-                          .toString()
-                          .replace(/^0+(?=\d)/, "");
+                        const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
                         const parsedVal = parseFloat(cleanVal);
                         field.onChange(parsedVal);
                       }}
@@ -365,15 +285,13 @@ export function CreateStreamModal() {
                       <AmountInput
                         label="Total Payment"
                         value={field?.value === 0 ? "" : (field?.value ?? 0)}
-                        onChange={(e) => {
+                        onChange={e => {
                           const val = e.target ? e.target.value : e;
                           if (val === "") {
                             field.onChange("");
                             return;
                           }
-                          const cleanVal = val
-                            .toString()
-                            .replace(/^0+(?=\d)/, "");
+                          const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
 
                           const parsedVal = parseFloat(cleanVal);
                           field.onChange(parsedVal);
@@ -391,19 +309,15 @@ export function CreateStreamModal() {
                       <AmountInput
                         label="Duration (Days)"
                         value={field?.value === 0 ? "" : (field?.value ?? 0)}
-                        onChange={(e) => {
+                        onChange={e => {
                           const val = e.target ? e.target.value : e;
                           if (val === "") {
                             field.onChange("");
                             return;
                           }
-                          const cleanVal = val
-                            .toString()
-                            .replace(/^0+(?=\d)/, "");
-
-                          const parsedInt = parseInt(cleanVal);
-                          console.log(parsedInt);
-                          field.onChange(parsedInt);
+                          const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
+                          const parsedVal = parseInt(cleanVal);
+                          field.onChange(parsedVal);
                         }}
                         placeholder="1"
                         error={fieldState.error}
@@ -440,23 +354,14 @@ export function CreateStreamModal() {
                   footer={
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <span className="text-xs uppercase tracking-wider font-bold">
-                          Total Required
-                        </span>
+                        <span className="text-xs uppercase tracking-wider font-bold">Total Required</span>
                         <span className="font-heading font-bold text-2xl">
-                          $
-                          {watchType === "monthly"
-                            ? preview.actualMonthly
-                            : preview.actualTotal}
+                          ${watchType === "monthly" ? preview.actualMonthly : preview.actualTotal}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-xs text-muted-foreground uppercase tracking-wider">
-                          Duration
-                        </span>
-                        <span className="text-xs font-mono">
-                          {preview.duration}
-                        </span>
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider">Duration</span>
+                        <span className="text-xs font-mono">{preview.duration}</span>
                       </div>
                     </div>
                   }
@@ -482,23 +387,15 @@ export function CreateStreamModal() {
                   {preview.hasPrecisionLoss && (
                     <TransactionAlert
                       type={"warning"}
-                      title={
-                        preview.isCriticalLoss
-                          ? "Critical Precision Loss Detected"
-                          : "Precision Loss Detected"
-                      }
+                      title={preview.isCriticalLoss ? "Critical Precision Loss Detected" : "Precision Loss Detected"}
                       description={
                         preview.isCriticalLoss
                           ? `Due to per-second integer division, actual ${
                               watchType === "monthly" ? "monthly" : "total"
                             } will be $${
-                              watchType === "monthly"
-                                ? preview.actualMonthly
-                                : preview.actualTotal
+                              watchType === "monthly" ? preview.actualMonthly : preview.actualTotal
                             } instead of $${
-                              watchType === "monthly"
-                                ? preview.inputMonthly
-                                : preview.inputTotal
+                              watchType === "monthly" ? preview.inputMonthly : preview.inputTotal
                             }. Loss: $${preview.precisionLoss} (${preview.precisionLossPercent}%). Use larger amounts (recommended: $100+ monthly).`
                           : `Actual rate differs by ${preview.precisionLossPercent}% ($${preview.precisionLoss}) due to integer division.`
                       }
@@ -513,8 +410,7 @@ export function CreateStreamModal() {
                           Final Payout: ${preview.finalPayout.toFixed(6)}
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                          This remainder will be paid with the final withdrawal
-                          to ensure employee receives exactly $
+                          This remainder will be paid with the final withdrawal to ensure employee receives exactly $
                           {preview.inputTotal}.
                         </p>
                       </div>
@@ -528,18 +424,8 @@ export function CreateStreamModal() {
                 <TransactionProgress
                   steps={[
                     {
-                      label:
-                        step === "creating"
-                          ? "Creating..."
-                          : step === "success"
-                            ? "Created ✓"
-                            : "Create Stream",
-                      status:
-                        step === "creating"
-                          ? "loading"
-                          : step === "success"
-                            ? "success"
-                            : "idle",
+                      label: step === "creating" ? "Creating..." : step === "success" ? "Created ✓" : "Create Stream",
+                      status: step === "creating" ? "loading" : step === "success" ? "success" : "idle",
                     },
                   ]}
                 />
