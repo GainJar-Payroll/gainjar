@@ -265,7 +265,7 @@ export default function VaultMetrics() {
 
         <div className="text-center space-y-1">
           <p className="text-xs font-mono text-muted-foreground">Max Flow Rate</p>
-          <p className="font-mono font-semibold text-sm text-foreground">${maxFlowInUSDC.toFixed(2)}/s</p>
+          <p className="font-mono font-semibold text-sm text-foreground">${maxFlowInUSDC.toFixed(6)}/s</p>
         </div>
 
         <div className="text-center space-y-1">
