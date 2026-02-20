@@ -9,6 +9,7 @@ import { Button } from "~~/components/ui/button";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { cn } from "~~/lib/utils";
 import { EVaultStatus, VaultStatusLabel } from "~~/types/type";
+import { ZERO_ADDRESS } from "~~/utils/scaffold-eth/common";
 
 interface EmployerVaultCardProps {
   employer: `0x${string}`;
@@ -141,21 +142,23 @@ export function EmployerVaultCard({ employer, employee, index }: EmployerVaultCa
           </div>
 
           {/* Your Earned */}
-          <div className="space-y-2">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold flex items-center gap-1.5">
-              <TrendingDown className="w-3 h-3" />
-              You Earned
-            </p>
-            <p className="font-mono font-bold text-lg text-green-600 dark:text-green-400">
-              <NumberTicker value={formatUnits(withdrawableLive, 6)} decimalPlaces={2} prefix="$" />
-            </p>
-          </div>
+          {employee !== ZERO_ADDRESS ? (
+            <div className="space-y-2">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold flex items-center gap-1.5">
+                <TrendingDown className="w-3 h-3" />
+                You Earned
+              </p>
+              <p className="font-mono font-bold text-lg text-green-600 dark:text-green-400">
+                <NumberTicker value={formatUnits(withdrawableLive ?? 0, 6)} decimalPlaces={2} prefix="$" />
+              </p>
+            </div>
+          ) : null}
         </div>
 
         {/* Liquidation Section */}
         {isEligible && (
           <div className="border-t border-border pt-4">
-            <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-4">
+            <div className="bg-destructive/5 border border-destructive/20 p-4">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
@@ -177,7 +180,7 @@ export function EmployerVaultCard({ employer, employee, index }: EmployerVaultCa
                   size="lg"
                   className="uppercase tracking-wider font-bold flex-shrink-0"
                 >
-                  😈 Liquidate Boss
+                  {employee !== ZERO_ADDRESS ? "😈 Liquidate Your Boss" : "Liquodate"}
                 </Button>
               </div>
             </div>

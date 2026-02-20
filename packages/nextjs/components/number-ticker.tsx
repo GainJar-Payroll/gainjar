@@ -13,7 +13,7 @@ interface NumberTickerProps extends ComponentPropsWithoutRef<"span"> {
 }
 
 export function NumberTicker({
-  value,
+  value = 0n,
   className,
   decimalPlaces = 0,
   prefix = "",
