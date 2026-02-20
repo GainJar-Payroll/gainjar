@@ -180,7 +180,7 @@ export function EmployerVaultCard({ employer, employee, index }: EmployerVaultCa
                   size="lg"
                   className="uppercase tracking-wider font-bold flex-shrink-0"
                 >
-                  {employee !== ZERO_ADDRESS ? "😈 Liquidate Your Boss" : "Liquodate"}
+                  {employee !== ZERO_ADDRESS ? "😈 Liquidate Your Boss" : "Liquidate"}
                 </Button>
               </div>
             </div>
