@@ -35,10 +35,20 @@ export default function TopBar() {
             Employee
           </Button>
         </Link>
+        <Link href={"/dashboard/liquidator"}>
+          <Button
+            size={"lg"}
+            variant={pathname === "/dashboard/liquidator" ? "default" : "ghost"}
+            className={pathname === "/dashboard/liquidator" ? "font-semibold" : ""}
+          >
+            Liquidator
+          </Button>
+        </Link>
         <div className="flex-1"></div>
         <div className="flex items-center text-xs font-mono text-muted-foreground">
           {pathname === "/dashboard/employer" && <span>📊 Employer Dashboard</span>}
           {pathname === "/dashboard/employee" && <span>💰 Employee Dashboard</span>}
+          {pathname === "/dashboard/liquidator" && <span>🛡 Liquidator Dashboard</span>}
         </div>
       </div>
     </div>
