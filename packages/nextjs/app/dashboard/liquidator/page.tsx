@@ -23,7 +23,7 @@ export default function LiquidatorPage() {
   } = useScaffoldReadContract({
     contractName: "GainJar",
     functionName: "getEmployerList",
-    watch: false,
+    watch: true,
   });
 
   // Filter and validate employers

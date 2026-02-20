@@ -338,7 +338,7 @@ export function UpdateStreamModal({ employee, currentRate, streamType, onClose }
                           return;
                         }
                         const cleanVal = val.toString().replace(/^0+(?=\d)/, "");
-                        const parsedVal = parseFloat(cleanVal);
+                        const parsedVal = parseInt(cleanVal);
                         field.onChange(parsedVal);
                       }}
                       error={fieldState.error}
