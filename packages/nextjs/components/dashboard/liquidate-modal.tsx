@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, TrendingUp, Users } from "lucide-react";
+import { AlertTriangle, TrendingUp } from "lucide-react";
 import { TransactionAlert } from "~~/components/transaction-alert";
 import { TransactionProgress } from "~~/components/transaction-progress";
 import { Button } from "~~/components/ui/button";
@@ -57,17 +57,15 @@ export function LiquidateModal({ employer, estimatedReward, onClose }: Liquidate
             />
 
             {/* Preview */}
-            <div className="border-2 border-foreground bg-background p-6">
-              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-4 font-medium">
-                Liquidation Preview
-              </div>
+            <div className="border-2 bg-background p-6">
+              <div className="uppercase tracking-wider text-muted-foreground mb-4 font-medium">Liquidation Preview</div>
 
               <div className="space-y-4">
                 {/* Reward */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between font-mono">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-green-600" />
-                    <span className="text-xs uppercase tracking-wider text-muted-foreground">Your Reward</span>
+                    <span className="uppercase tracking-wider text-muted-foreground">Your Reward</span>
                   </div>
                   <span className="font-heading font-bold text-2xl text-green-600 dark:text-green-400">
                     ${estimatedReward.toFixed(2)}
@@ -75,18 +73,15 @@ export function LiquidateModal({ employer, estimatedReward, onClose }: Liquidate
                 </div>
 
                 {/* Impact */}
-                <div className="border-t border-border pt-4">
-                  <div className="flex items-start gap-2">
-                    <Users className="w-4 h-4 text-muted-foreground mt-0.5" />
-                    <div>
-                      <p className="text-xs font-bold mb-1">What Happens:</p>
-                      <ul className="text-xs text-muted-foreground space-y-1">
-                        <li>• All active streams will be paused</li>
-                        <li>• Employees receive their earned amounts</li>
-                        <li>• You receive liquidation reward</li>
-                        <li>• Employer can deposit more to continue</li>
-                      </ul>
-                    </div>
+                <div className="border-t border-border pt-4 font-mono">
+                  <div className="flex items-start flex-col gap-2">
+                    <p className="font-bold mb-1 text-lg">What Happens:</p>
+                    <ul className="text-muted-foreground space-y-1">
+                      <li>• All active streams will be paused</li>
+                      <li>• Employees receive their earned amounts</li>
+                      <li>• You receive liquidation reward</li>
+                      <li>• Employer can deposit more and reactivate to continue</li>
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -112,12 +107,9 @@ export function LiquidateModal({ employer, estimatedReward, onClose }: Liquidate
               className="flex-1 uppercase tracking-wider font-bold"
               disabled={isLoading}
             >
-              {step === "idle" && "😈 Liquidate Boss"}
+              {step === "idle" && "😈 Liquidate"}
               {step === "creating" && "Liquidating..."}
               {step === "success" && "Success! 💰"}
-            </Button>
-            <Button variant="outline" onClick={onClose} disabled={isLoading} className="uppercase tracking-wider">
-              Cancel
             </Button>
           </CardFooter>
         </Card>

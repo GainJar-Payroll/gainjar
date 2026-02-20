@@ -67,7 +67,7 @@ export default function GainJarLanding() {
                   Launch Application
                 </Button>
               </Link>
-              <Link href="#how-it-works">
+              <Link href="https://github.com/GainJar-Payroll/gainjar">
                 <Button size="lg" variant="outline" className="uppercase tracking-wider font-medium">
                   Read Documentation
                 </Button>
@@ -418,7 +418,7 @@ export default function GainJarLanding() {
             </div>
 
             <div className="space-y-6">
-              <div className="border-l-4 border-border pl-6 py-4">
+              <div className="border-l-4 border-foreground pl-6 py-4">
                 <div className="flex items-baseline gap-4 mb-2">
                   <div className="text-2xl font-heading font-bold">HEALTHY</div>
                   <div className="text-sm font-mono text-muted-foreground">≥30 days</div>
@@ -678,12 +678,10 @@ export default function GainJarLanding() {
                   </Link>
                 </div>
                 <div>
-                  <Link href="#features" className="hover:opacity-60 transition-opacity">
-                    Features
-                  </Link>
-                </div>
-                <div>
-                  <Link href="#how-it-works" className="hover:opacity-60 transition-opacity">
+                  <Link
+                    href="https://github.com/GainJar-Payroll/gainjar"
+                    className="hover:opacity-60 transition-opacity"
+                  >
                     Documentation
                   </Link>
                 </div>
