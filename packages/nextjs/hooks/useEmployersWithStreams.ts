@@ -9,7 +9,7 @@ export function useEmployersWithStreams(employeeAddress: string | undefined) {
   const { data: streamCreatedEvents, isFetchingNewEvent: isLoading } = useScaffoldEventHistory({
     contractName: "GainJar",
     eventName: "StreamCreated",
-    fromBlock: 243782709n,
+    fromBlock: 257852249n,
     filters: { _employee: employeeAddress },
     watch: true,
   });
